@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>FsharpGrpcGen</RootNamespace>
+    <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <Import Project="bootstrap/Protobuf.targets" />
+
+  <ItemGroup>
+    <Compile Include="DependencySort.fs" />
+    <Compile Include="ChangeCase.fs" />
+    <Compile Include="CodeTree.fs" />
+    <Compile Include="ProtoCodeGen.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.19.4" />
+    <PackageReference Include="FsGrpc" Version="0.9.0-alpha-1" />
+  </ItemGroup>
+
+</Project>

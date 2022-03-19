@@ -1,0 +1,21 @@
+#!/bin/bash
+# This will refresh the generated files under bootstrap
+# It uses those files under bootstrap to replace themselves
+
+set -e
+DIR=$(dirname $0)
+
+dotnet build
+
+export PATH=$PATH:~/.cache/buf/Linux/x86_64/bin
+PROTOC=protoc
+#PROTOROOT=${DIR}/../fsgrpc-test/CsharpRefImpl/proto
+PROTOROOT=${DIR}/protoc-proto
+
+PATH=${DIR}/bin/Debug/net6.0:${PATH}
+
+$PROTOC -I${PROTOROOT} \
+    --fsgrpc_out=./bootstrap \
+    google/protobuf/descriptor.proto \
+    google/protobuf/compiler/plugin.proto \
+    "$@"

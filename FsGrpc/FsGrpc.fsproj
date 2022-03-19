@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyTitle>FsGrpc</AssemblyTitle>
+    <Description>Accompanying library for idiomatic F# code generation from protocol buffers</Description>
+    <PackageTags>F#;protobuf;protocol buffers;grpc;</PackageTags>
+    <Authors>Warren Falk</Authors>
+    <RepositoryUrl>https://github.com/Divisions-Maintenance-Group/fsgrpc</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageVersion>0.9.0$(VersionSuffix)</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
+    <None Include="../README.md" Pack="true" PackagePath="" />
+    <Compile Include="LibFsGrpc.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.19.4" />
+    <PackageReference Include="NodaTime" Version="3.0.9" />
+  </ItemGroup>
+
+</Project>
