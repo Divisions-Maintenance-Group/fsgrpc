@@ -3,7 +3,7 @@ open System.IO
 
 let private ``???``<'T> : 'T = raise (System.NotImplementedException())
 
-let inline read (r: Google.Protobuf.CodedInputStream) (tag: outref<int>) : bool =
+let read (r: Google.Protobuf.CodedInputStream) (tag: outref<int>) : bool =
     let tagAndType = r.ReadTag ()
     tag <- int (tagAndType >>> 3)
     tagAndType <> 0u
@@ -27,12 +27,20 @@ let encodeProto<'T> (proto: Lazy<ProtoDef<'T>>) (v: 'T) =
     writer.Flush()
     memstr.ToArray()
 
+let decodeProto<'T> (proto: Lazy<ProtoDef<'T>>) (bytes: byte array) : 'T =
+    let {Decode = decode} = proto.Force()
+    let cis = new Google.Protobuf.CodedInputStream(bytes)
+    decode cis
+
 let inline encode< 'T when 'T : (static member Proto : Lazy<ProtoDef< 'T>>)> (v: 'T) : byte array =
     encodeProto ProtoOf< 'T> v
 
+let inline decode< 'T when 'T : (static member Proto : Lazy<ProtoDef< 'T>>)> (bytes: byte array) : 'T =
+    decodeProto ProtoOf< 'T> bytes
+
 type ValueSize<'T> =
 | Fixed of int
-| Variable of ('T -> int)
+| Variable
 
 type RepeatEncoding<'T> =
 | Packed of ValueSize<'T>
@@ -44,16 +52,16 @@ type Reader = Google.Protobuf.CodedInputStream
 type WireType = Google.Protobuf.WireFormat.WireType
 
 module WriteTag =
-    let inline Varint (writer: Writer) (tag: int) =
+    let Varint (writer: Writer) (tag: int) =
         writer.WriteTag(tag, WireType.Varint)
-    let inline Fixed64 (writer: Writer) (tag: int) =
+    let Fixed64 (writer: Writer) (tag: int) =
         writer.WriteTag(tag, WireType.Fixed64)
-    let inline Fixed32 (writer: Writer) (tag: int) =
+    let Fixed32 (writer: Writer) (tag: int) =
         writer.WriteTag(tag, WireType.Fixed32)
-    let inline LengthDelimited (writer: Writer) (tag: int) =
+    let LengthDelimited (writer: Writer) (tag: int) =
         writer.WriteTag(tag, WireType.LengthDelimited)
 
-let inline private defer v =
+let private defer v =
     let r () = v
     r
 
@@ -85,11 +93,11 @@ let private writeField (valcodec: ValueCodec<'V>) (tag: int) (writer: Writer) (v
 
 module ValueCodec =
     let Double =
-        let inline writeValue (writer: Writer) (value: double) =
+        let writeValue (writer: Writer) (value: double) =
             writer.WriteDouble(value)
-        let inline readValue (reader: Reader) : double =
+        let readValue (reader: Reader) : double =
             reader.ReadDouble ()
-        let inline isNonDefault (value: double) =
+        let isNonDefault (value: double) =
             value <> 0.0
         {
             WriteTag = WriteTag.Fixed64
@@ -101,11 +109,11 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let Float =
-        let inline writeValue (writer: Writer) (value: float32) =
+        let writeValue (writer: Writer) (value: float32) =
             writer.WriteFloat(value)
-        let inline readValue (reader: Reader) : float32 =
+        let readValue (reader: Reader) : float32 =
             reader.ReadFloat ()
-        let inline isNonDefault (value: float32) =
+        let isNonDefault (value: float32) =
             value <> 0f
         {
             WriteTag = WriteTag.Fixed32
@@ -117,59 +125,59 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let Int64 =
-        let inline writeValue (writer: Writer) (value: int64) =
+        let writeValue (writer: Writer) (value: int64) =
             writer.WriteInt64(value)
-        let inline readValue (reader: Reader) : int64 =
+        let readValue (reader: Reader) : int64 =
             reader.ReadInt64 ()
-        let inline isNonDefault (value: int64) =
+        let isNonDefault (value: int64) =
             value <> 0
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeInt64Size)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeInt64Size
             GetDefault = defer 0L
             IsNonDefault = isNonDefault
         }
     let UInt64 =
-        let inline writeValue (writer: Writer) (value: uint64) =
+        let writeValue (writer: Writer) (value: uint64) =
             writer.WriteUInt64(value)
-        let inline readValue (reader: Reader) : uint64 =
+        let readValue (reader: Reader) : uint64 =
             reader.ReadUInt64 ()
-        let inline isNonDefault (value: uint64) =
+        let isNonDefault (value: uint64) =
             value <> 0UL
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeUInt64Size)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeUInt64Size
             GetDefault = defer 0UL
             IsNonDefault = isNonDefault
         }
     let Int32 =
-        let inline writeValue (writer: Writer) (value: int32) =
+        let writeValue (writer: Writer) (value: int32) =
             writer.WriteInt32(value)
-        let inline readValue (reader: Reader) : int32 =
+        let readValue (reader: Reader) : int32 =
             reader.ReadInt32 ()
-        let inline isNonDefault (value: int32) =
+        let isNonDefault (value: int32) =
             value <> 0
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeInt32Size)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeInt32Size
             GetDefault = defer 0
             IsNonDefault = isNonDefault
         }
     let Fixed64 =
-        let inline writeValue (writer: Writer) (value: uint64) =
+        let writeValue (writer: Writer) (value: uint64) =
             writer.WriteFixed64(value)
-        let inline readValue (reader: Reader) : uint64 =
+        let readValue (reader: Reader) : uint64 =
             reader.ReadFixed64 ()
-        let inline isNonDefault (value: uint64) =
+        let isNonDefault (value: uint64) =
             value <> 0UL
         {
             WriteTag = WriteTag.Fixed64
@@ -181,11 +189,11 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let Fixed32 =
-        let inline writeValue (writer: Writer) (value: uint32) =
+        let writeValue (writer: Writer) (value: uint32) =
             writer.WriteFixed32(value)
-        let inline readValue (reader: Reader) : uint32 =
+        let readValue (reader: Reader) : uint32 =
             reader.ReadFixed32 ()
-        let inline isNonDefault (value: uint32) =
+        let isNonDefault (value: uint32) =
             value <> 0u
         {
             WriteTag = WriteTag.Fixed32
@@ -197,27 +205,27 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let Bool =
-        let inline writeValue (writer: Writer) (value: bool) =
+        let writeValue (writer: Writer) (value: bool) =
             writer.WriteBool(value)
-        let inline readValue (reader: Reader) : bool =
+        let readValue (reader: Reader) : bool =
             reader.ReadBool ()
-        let inline isNonDefault (value: bool) =
+        let isNonDefault (value: bool) =
             value <> false
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeBoolSize)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeBoolSize
             GetDefault = defer false
             IsNonDefault = isNonDefault
         }
     let String =
-        let inline writeValue (writer: Writer) (value: string) =
+        let writeValue (writer: Writer) (value: string) =
             writer.WriteString(value)
-        let inline readValue (reader: Reader) : string =
+        let readValue (reader: Reader) : string =
             reader.ReadString ()
-        let inline isNonDefault (value: string) =
+        let isNonDefault (value: string) =
             value.Length <> 0
         {
             WriteTag = WriteTag.LengthDelimited
@@ -229,11 +237,11 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let Bytes =
-        let inline writeValue (writer: Writer) (value: Google.Protobuf.ByteString) =
+        let writeValue (writer: Writer) (value: Google.Protobuf.ByteString) =
             writer.WriteBytes(value)
-        let inline readValue (reader: Reader) : Google.Protobuf.ByteString =
+        let readValue (reader: Reader) : Google.Protobuf.ByteString =
             reader.ReadBytes ()
-        let inline isNonDefault (value: Google.Protobuf.ByteString) =
+        let isNonDefault (value: Google.Protobuf.ByteString) =
             value.Length <> 0
         {
             WriteTag = WriteTag.LengthDelimited
@@ -245,27 +253,27 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let UInt32 =
-        let inline writeValue (writer: Writer) (value: uint32) =
+        let writeValue (writer: Writer) (value: uint32) =
             writer.WriteUInt32(value)
-        let inline readValue (reader: Reader) : uint32 =
+        let readValue (reader: Reader) : uint32 =
             reader.ReadUInt32 ()
-        let inline isNonDefault (value: uint32) =
+        let isNonDefault (value: uint32) =
             value <> 0u
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeUInt32Size)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeUInt32Size
             GetDefault = defer 0u
             IsNonDefault = isNonDefault
         }
     let SFixed32 =
-        let inline writeValue (writer: Writer) (value: int) =
+        let writeValue (writer: Writer) (value: int) =
             writer.WriteSFixed32(value)
-        let inline readValue (reader: Reader) : int =
+        let readValue (reader: Reader) : int =
             reader.ReadSFixed32 ()
-        let inline isNonDefault (value: int) =
+        let isNonDefault (value: int) =
             value <> 0
         {
             WriteTag = WriteTag.Fixed32
@@ -277,11 +285,11 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let SFixed64 =
-        let inline writeValue (writer: Writer) (value: int64) =
+        let writeValue (writer: Writer) (value: int64) =
             writer.WriteSFixed64(value)
-        let inline readValue (reader: Reader) : int64 =
+        let readValue (reader: Reader) : int64 =
             reader.ReadSFixed64 ()
-        let inline isNonDefault (value: int64) =
+        let isNonDefault (value: int64) =
             value <> 0
         {
             WriteTag = WriteTag.Fixed64
@@ -293,66 +301,71 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let SInt32 =
-        let inline writeValue (writer: Writer) (value: int) =
+        let writeValue (writer: Writer) (value: int) =
             writer.WriteSInt32(value)
-        let inline readValue (reader: Reader) : int =
+        let readValue (reader: Reader) : int =
             reader.ReadSInt32 ()
-        let inline isNonDefault (value: int) =
+        let isNonDefault (value: int) =
             value <> 0
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeSInt32Size)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeSInt32Size
             GetDefault = defer 0
             IsNonDefault = isNonDefault
         }
     let SInt64 =
-        let inline writeValue (writer: Writer) (value: int64) =
+        let writeValue (writer: Writer) (value: int64) =
             writer.WriteSInt64(value)
-        let inline readValue (reader: Reader) : int64 =
+        let readValue (reader: Reader) : int64 =
             reader.ReadSInt64 ()
-        let inline isNonDefault (value: int64) =
+        let isNonDefault (value: int64) =
             value <> 0
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable Writer.ComputeSInt64Size)
+            RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeSInt64Size
             GetDefault = defer 0L
             IsNonDefault = isNonDefault
         }
 
-    let inline Enum<'E when 'E : (static member op_Explicit : 'E -> int) and 'E : enum<int> and 'E : equality> : ValueCodec<'E> =
+    let EnumFor<'E when 'E : equality> (castTo: int -> 'E) (castFrom: 'E -> int) =
         let writeValue (writer: Writer) (value: 'E) =
-            Int32.WriteValue writer (int value)
+            Int32.WriteValue writer (castFrom value)
         let readValue (reader: Reader) : 'E =
             let v = Int32.ReadValue reader
-            (LanguagePrimitives.EnumOfValue v)
+            (castTo v)
         let computeSize (value: 'E) =
-            Writer.ComputeInt32Size (int value)
-        let defVal : 'E = (LanguagePrimitives.EnumOfValue 0)
+            Writer.ComputeInt32Size (castFrom value)
+        let defVal : 'E = (castTo 0)
         let isNonDefault (value: 'E) =
             value <> defVal
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
             ReadValue = readValue
-            RepeatEncoding = Packed (Variable computeSize)
+            RepeatEncoding = Packed Variable
             CalcSize = computeSize
             GetDefault = defer defVal
             IsNonDefault = isNonDefault
         }
 
+    let inline Enum<'E when 'E : (static member op_Explicit : 'E -> int) and 'E : enum<int> and 'E : equality> : ValueCodec<'E> =
+        EnumFor<'E> LanguagePrimitives.EnumOfValue int
+
     let MessageFrom<'M when 'M : equality> (proto: Lazy<ProtoDef<'M>>) : ValueCodec<'M> =
-        // this will write a length-prefixed message
+        // this calculates the length-prefixed size
         let calcSize = fun (m: 'M) ->
             let size = proto.Force().Size m
             let length = Writer.ComputeLengthSize(size)
             size + length
+        // this will write a length-prefixed message
         let writeValue (writer: Writer) (value: 'M) =
+            // this calculates the raw size
             let size = proto.Force().Size value
             writer.WriteInt32(size)
             proto.Force().Encode writer value
@@ -413,15 +426,15 @@ module ValueCodec =
             match primitive.RepeatEncoding with
             | Packed valtype -> valtype
             | Repeat -> failwith "Invalid use of Packed with non-packed primitive type"
+        let sizeOf value =
+            match valtype with
+            | Fixed size -> (value |> Seq.length) * size
+            | Variable -> (value |> Seq.sumBy primitive.CalcSize)
         let writeValue (w: Writer) (value: 'P seq) =
-            if not (value |> Seq.isEmpty) then
-                let size =
-                    match valtype with
-                    | Fixed size -> (value |> Seq.length) * size
-                    | Variable calc -> (value |> Seq.sumBy calc)
-                w.WriteLength(size)
-                for v in value do
-                    primitive.WriteValue w v
+            let size = sizeOf value
+            w.WriteLength(size)
+            for v in value do
+                primitive.WriteValue w v
         let readValue (r: Reader) : 'P seq =
             match valtype with
             | Fixed size ->
@@ -442,19 +455,9 @@ module ValueCodec =
                     builder.Add item
                 builder.ToArray()
         let calcSize (value: 'P seq) =
-            if value |> Seq.isEmpty then
-                0
-            else
-                match primitive.RepeatEncoding with
-                | Packed valtype ->
-                    let dataSize =
-                        match valtype with
-                        | Fixed size -> (value |> Seq.length) * size
-                        | Variable calc -> (value |> Seq.sumBy calc)
-                    let lengthSize = Codec.ComputeLengthSize(dataSize)
-                    lengthSize + dataSize
-                | Repeat ->
-                    failwith "Invalid use of Packed with non-packed primitive type"
+            let dataSize = sizeOf value
+            let lengthSize = Codec.ComputeLengthSize(dataSize)
+            lengthSize + dataSize
         let getDefault () =
             seq []
         let isNonDefault (v: 'P seq) =
@@ -618,9 +621,6 @@ module FieldCodec =
             | Some value ->
                 valcodec.WriteTag writer tag
                 valcodec.WriteValue writer value
-        let readValue (reader: Reader) : 'V =
-            valcodec.ReadValue reader
-        let toValue v = Some v
         {
             CalcFieldSize = calcFieldSize
             WriteField = writeField
@@ -672,9 +672,6 @@ module FieldCodec =
                 for v in map do
                     recordCodec.WriteTag writer tag
                     recordCodec.WriteValue writer (v.Key, v.Value)
-        let readMap (reader: Reader) (value: FSharp.Collections.Map<'K, 'V>) : FSharp.Collections.Map<'K, 'V> =
-            let next = recordCodec.ReadValue reader
-            value.Add next
         {
             CalcFieldSize = sizeOfMap
             WriteField = writeMap
@@ -768,7 +765,7 @@ type OptionBuilder<'T> =
         | ValueSome v -> Some v
         | ValueNone -> None
 
-let inline orEmptyString (v: string) =
+let orEmptyString (v: string) =
     match v with
     | null -> ""
     | v -> v

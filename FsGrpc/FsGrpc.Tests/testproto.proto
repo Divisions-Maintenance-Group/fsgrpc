@@ -1,0 +1,80 @@
+syntax="proto3";
+package test.name.space;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+
+message TestMessage {
+    int32 test_int = 1;
+    double test_double = 2;
+    fixed32 test_fixed32 = 3;
+    string test_string = 4;
+    bytes test_bytes = 5;
+    float test_float = 6;
+    int64 test_int64 = 7;
+    uint64 test_uint64 = 8;
+    fixed64 test_fixed64 = 9;
+    bool test_bool = 10;
+    uint32 test_uint32 = 11;
+    sfixed32 test_sfixed32 = 12;
+    sfixed64 test_sfixed64 = 13;
+    sint32 test_sint32 = 14;
+    sint64 test_sint64 = 15;
+}
+
+message Nest {
+    string name = 1;
+    repeated Nest children = 2;
+    Inner inner = 3;
+    Special special = 4;
+
+    message Inner {
+        string inner_name = 1;
+    }
+}
+
+message Special {
+    repeated int32 int_list = 1;
+    repeated double double_list = 2;
+    repeated fixed32 fixed32_list = 3;
+    repeated string string_list = 4;
+    //repeated bytes bytes_list = 5;
+    //repeated float float_list = 6;
+    //repeated int64 int64_list = 7;
+    //repeated uint64 uint64_list = 8;
+    //repeated fixed64 fixed64_list = 9;
+    //repeated bool bool_list = 10;
+    //repeated uint32 uint32_list = 11;
+    //repeated sfixed32 sfixed32_list = 12;
+    //repeated sfixed64 sfixed64_list = 13;
+    //repeated sint32 sint32_list = 14;
+    //repeated sint64 sint64_list = 15;
+    map <string, string> dictionary = 16;
+}
+
+message Enums {
+    enum Color {
+        COLOR_BLACK = 0;
+        COLOR_RED = 1;
+        COLOR_GREEN = 2;
+        COLOR_BLUE = 3;
+    }
+
+    Color main_color = 1;
+    repeated Color other_colors = 2;
+    map<string, Color> by_name = 3;
+    oneof union {
+        Color color = 4;
+        string name = 5;
+    }
+    optional Color maybe_color = 6;
+}
+
+message Google {
+    google.protobuf.Int32Value int32_val = 1;
+    google.protobuf.StringValue string_val = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    google.protobuf.Duration duration = 4;
+}
