@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<ItemGroup>
+    <!-- These files are listed in dependency order such that none is listed above any other file on which it depends -->
+    <!-- Add <Import Project="path/to/Protobuf.targets" /> to your .fsproj to use it -->
+    <Compile Include="$(MSBuildThisFileDirectory)/importable/importMe.proto.gen.fs" />
+    <Compile Include="$(MSBuildThisFileDirectory)/example.proto.gen.fs" />
+</ItemGroup>
+</Project>

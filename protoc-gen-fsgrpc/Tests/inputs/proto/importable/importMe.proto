@@ -1,0 +1,21 @@
+syntax = "proto3";
+package ex.ample.importable;
+
+message Imported {
+    string value = 1;
+
+    enum EnumForImport {
+        ENUM_FOR_IMPORT_NO = 0;
+        ENUM_FOR_IMPORT_YES = 1;
+    }
+}
+
+// @has-surrogate
+message Args {
+    string value = 1;
+}
+
+service ServiceTwo {
+    rpc ExampleClientStreamingRpc(stream Args) returns (Args);
+    rpc ExampleBidirectionalRpc(stream Args) returns (stream Args);
+}

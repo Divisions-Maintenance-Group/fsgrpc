@@ -1,0 +1,99 @@
+syntax = "proto3";
+package ex.ample;
+import "importable/importMe.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+enum EnumType {
+    ENUM_TYPE_NONE = 0;
+    ENUM_TYPE_ONE = 1;
+    ENUM_TYPE_TWO = 2;
+}
+
+message Inner {
+    sfixed32 int_fixed = 13;
+    sfixed64 long_fixed = 14;
+    sint32 zigzag_int = 15;
+    sint64 zigzag_long = 16;
+    Outer.Nested nested = 17; // can reach "Nested" from Inner via Outer
+    Outer.NestEnumeration nestedEnum = 18; // can reach "Nested" from Inner via Outer
+}
+
+message Outer {
+    double double_val = 1;
+    float float_val = 2;
+    int64 long_val = 3;
+    uint64 ulong_val = 4;
+    int32 int_val = 5;
+    fixed64 ulong_fixed = 6;
+    fixed32 uint_fixed = 7;
+    bool bool_val = 8;
+    string string_val = 9;
+    bytes bytes_val = 10;
+    uint32 uint_val = 11;
+    EnumType enum_val = 12;
+    Inner inner = 17;
+    repeated double doubles = 18;
+    repeated Inner inners = 19;
+    map<string, string> map = 20;
+    map<string, Inner> map_inner = 21;
+    map<int64, int32> map_ints = 22;
+    map<bool, string> map_bool = 23;
+    Outer recursive = 24;
+    oneof union {
+        Inner inner_option = 25;
+        string string_option = 26;
+        importable.Args imported_option = 30;
+    }
+    Nested nested = 27; // can reach "Nested" from Outer
+    importable.Imported imported = 28; // can reach out to imported types
+    importable.Imported.EnumForImport enum_imported = 29; // can reference imported enums
+    // @representation:hexpad
+    fixed64 ulong_fixed_hex = 31;
+    importable.Args surrogate = 32; // make sure surrogate types are handled correctly
+    google.protobuf.DoubleValue maybe_double = 33;
+    google.protobuf.FloatValue maybe_float = 34;
+    google.protobuf.Int64Value maybe_int64 = 35;
+    google.protobuf.UInt64Value maybe_uint64 = 36;
+    google.protobuf.Int32Value maybe_int32 = 37;
+    google.protobuf.UInt32Value maybe_uint32 = 38;
+    google.protobuf.BoolValue maybe_bool = 39;
+    google.protobuf.StringValue maybe_string = 40;
+    google.protobuf.BytesValue maybe_bytes = 41;
+    google.protobuf.Timestamp timestamp = 42;
+    google.protobuf.Duration duration = 43;
+    optional int32 optional_int32 = 44;
+    repeated google.protobuf.Int64Value maybes_int64 = 45;
+    repeated google.protobuf.Timestamp timestamps = 46;
+
+    message Nested {
+        repeated NestEnumeration enums = 1;
+        Inner inner = 2; // can reach "inner" from Nested
+
+        message DoubleNested {
+        }
+    }
+
+    enum NestEnumeration {
+        NEST_ENUMERATION_BLACK = 0;
+        NEST_ENUMERATION_RED = 1;
+        NEST_ENUMERATION_BLUE = 2;
+    }
+}
+
+message ResultEvent {
+    EnumType subscription_state = 1;
+    repeated Record records = 2;
+
+    message Record {
+        string key = 1;
+        string value = 2;
+    }
+}
+
+service ServiceOne {
+    rpc ExampleUnaryRpc(Inner) returns (importable.Imported);
+    rpc ExampleServerStreamingRpc(Outer.Nested) returns (stream importable.Imported);
+    rpc ExampleSubscription(importable.Args) returns (stream ResultEvent);
+}
