@@ -5,12 +5,16 @@ import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
+// This is an enumeration
 enum EnumType {
+    // This is a (default) enumeraton option
     ENUM_TYPE_NONE = 0;
+    // This is another enumeration option
     ENUM_TYPE_ONE = 1;
     ENUM_TYPE_TWO = 2;
 }
 
+// This is an "inner" message which is used within the outer message
 message Inner {
     sfixed32 int_fixed = 13;
     sfixed64 long_fixed = 14;
@@ -20,34 +24,62 @@ message Inner {
     Outer.NestEnumeration nestedEnum = 18; // can reach "Nested" from Inner via Outer
 }
 
+// This is an "outer" message that will contain other messages
 message Outer {
+    // primitive double value
     double double_val = 1;
+    // priviate float value
     float float_val = 2;
+    // primitive int64 value
     int64 long_val = 3;
+    // primitive uint64 value
     uint64 ulong_val = 4;
+    // primitive int32 value
     int32 int_val = 5;
+    // primitive fixed64 value
     fixed64 ulong_fixed = 6;
+    // primitive fixed32 value
     fixed32 uint_fixed = 7;
+    // primitive bool value
     bool bool_val = 8;
+    // primitive string value
     string string_val = 9;
+    // primitive bytes value
     bytes bytes_val = 10;
+    // primitive uint32 value
     uint32 uint_val = 11;
+    // enum value
     EnumType enum_val = 12;
+    // message value (inner)
     Inner inner = 17;
+    // repeated of packable primitive
     repeated double doubles = 18;
+    // repeated of message
     repeated Inner inners = 19;
+    // map with string keys
     map<string, string> map = 20;
+    // map with message values
     map<string, Inner> map_inner = 21;
+    // map with int keys
     map<int64, int32> map_ints = 22;
+    // map with bool keys (which is allowed 🤷)
     map<bool, string> map_bool = 23;
+    // message value of the same type (recursive)
     Outer recursive = 24;
+    // a oneof value
     oneof union {
+        // a oneof option that is a message
         Inner inner_option = 25;
+        // a oneof option that is a string
         string string_option = 26;
+        // a message type from another file
         importable.Args imported_option = 30;
     }
-    Nested nested = 27; // can reach "Nested" from Outer
-    importable.Imported imported = 28; // can reach out to imported types
+    // a message that is defined inside this message
+    Nested nested = 27;
+    // a message type that is imported from another file
+    importable.Imported imported = 28;
+    // an enumeration imported from another file
     importable.Imported.EnumForImport enum_imported = 29; // can reference imported enums
     // @representation:hexpad
     //fixed64 ulong_fixed_hex = 31;
@@ -55,29 +87,45 @@ message Outer {
     // these were used to test features of tsgrpc that may not ever be supported in fsgrpc
     reserved 31;
     reserved 32;
+    // a wrapped double value (the old way of doing optional double)
     google.protobuf.DoubleValue maybe_double = 33;
+    // a wrapped float value (the old way of doing optional float)
     google.protobuf.FloatValue maybe_float = 34;
+    // a wrapped int64 value (the old way of doing optional int64)
     google.protobuf.Int64Value maybe_int64 = 35;
+    // a wrapped uint64 value (the old way of doing optional uint64)
     google.protobuf.UInt64Value maybe_uint64 = 36;
+    // a wrapped int32 value (the old way of doing optional int32)
     google.protobuf.Int32Value maybe_int32 = 37;
+    // a wrapped uint32 value (the old way of doing optional uint32)
     google.protobuf.UInt32Value maybe_uint32 = 38;
+    // a wrapped bool value (the old way of doing optional bool)
     google.protobuf.BoolValue maybe_bool = 39;
+    // a wrapped string value (the old way of doing optional string)
     google.protobuf.StringValue maybe_string = 40;
+    // a wrapped bytes value (the old way of doing optional bytes)
     google.protobuf.BytesValue maybe_bytes = 41;
+    // the well-known timestamp
     google.protobuf.Timestamp timestamp = 42;
+    // the well-known duration
     google.protobuf.Duration duration = 43;
+    // a proto3 optional int
     optional int32 optional_int32 = 44;
+    // a repeated of the old wrapped int64
     repeated google.protobuf.Int64Value maybes_int64 = 45;
+    // a repeated of the well-known timestamp
     repeated google.protobuf.Timestamp timestamps = 46;
 
     message Nested {
         repeated NestEnumeration enums = 1;
         Inner inner = 2; // can reach "inner" from Nested
 
+        // this message is double nested (and also demonstrates a message with no fields)
         message DoubleNested {
         }
     }
 
+    // this enumeration is nested under another class
     enum NestEnumeration {
         NEST_ENUMERATION_BLACK = 0;
         NEST_ENUMERATION_RED = 1;
