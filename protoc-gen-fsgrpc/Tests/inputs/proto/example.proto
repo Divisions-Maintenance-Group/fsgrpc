@@ -50,8 +50,11 @@ message Outer {
     importable.Imported imported = 28; // can reach out to imported types
     importable.Imported.EnumForImport enum_imported = 29; // can reference imported enums
     // @representation:hexpad
-    fixed64 ulong_fixed_hex = 31;
-    importable.Args surrogate = 32; // make sure surrogate types are handled correctly
+    //fixed64 ulong_fixed_hex = 31;
+    //importable.Args surrogate = 32;
+    // these were used to test features of tsgrpc that may not ever be supported in fsgrpc
+    reserved 31;
+    reserved 32;
     google.protobuf.DoubleValue maybe_double = 33;
     google.protobuf.FloatValue maybe_float = 34;
     google.protobuf.Int64Value maybe_int64 = 35;

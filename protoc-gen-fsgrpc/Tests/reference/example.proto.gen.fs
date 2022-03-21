@@ -225,8 +225,6 @@ module Outer =
             val mutable Nested: OptionBuilder<Ex.Ample.Outer.Nested> // (27)
             val mutable Imported: OptionBuilder<Ex.Ample.Importable.Imported> // (28)
             val mutable EnumImported: Ex.Ample.Importable.Imported.EnumForImport // (29)
-            val mutable UlongFixedHex: uint64 // (31)
-            val mutable Surrogate: OptionBuilder<Ex.Ample.Importable.Args> // (32)
             val mutable MaybeDouble: OptionBuilder<double> // (33)
             val mutable MaybeFloat: OptionBuilder<float32> // (34)
             val mutable MaybeInt64: OptionBuilder<int64> // (35)
@@ -271,8 +269,6 @@ module Outer =
             | 27 -> x.Nested.Set (ValueCodec.Message<Ex.Ample.Outer.Nested>.ReadValue reader)
             | 28 -> x.Imported.Set (ValueCodec.Message<Ex.Ample.Importable.Imported>.ReadValue reader)
             | 29 -> x.EnumImported <- ValueCodec.Enum<Ex.Ample.Importable.Imported.EnumForImport>.ReadValue reader
-            | 31 -> x.UlongFixedHex <- ValueCodec.Fixed64.ReadValue reader
-            | 32 -> x.Surrogate.Set (ValueCodec.Message<Ex.Ample.Importable.Args>.ReadValue reader)
             | 33 -> x.MaybeDouble.Set ((ValueCodec.Wrap ValueCodec.Double).ReadValue reader)
             | 34 -> x.MaybeFloat.Set ((ValueCodec.Wrap ValueCodec.Float).ReadValue reader)
             | 35 -> x.MaybeInt64.Set ((ValueCodec.Wrap ValueCodec.Int64).ReadValue reader)
@@ -313,8 +309,6 @@ module Outer =
             Nested = x.Nested.Build
             Imported = x.Imported.Build
             EnumImported = x.EnumImported
-            UlongFixedHex = x.UlongFixedHex
-            Surrogate = x.Surrogate.Build
             MaybeDouble = x.MaybeDouble.Build
             MaybeFloat = x.MaybeFloat.Build
             MaybeInt64 = x.MaybeInt64.Build
@@ -359,8 +353,6 @@ let private _OuterProto : ProtoDef<Outer> =
     let Nested = FieldCodec.Optional ValueCodec.Message<Ex.Ample.Outer.Nested> 27
     let Imported = FieldCodec.Optional ValueCodec.Message<Ex.Ample.Importable.Imported> 28
     let EnumImported = FieldCodec.Primitive ValueCodec.Enum<Ex.Ample.Importable.Imported.EnumForImport> 29
-    let UlongFixedHex = FieldCodec.Primitive ValueCodec.Fixed64 31
-    let Surrogate = FieldCodec.Optional ValueCodec.Message<Ex.Ample.Importable.Args> 32
     let MaybeDouble = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.Double) 33
     let MaybeFloat = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.Float) 34
     let MaybeInt64 = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.Int64) 35
@@ -403,8 +395,6 @@ let private _OuterProto : ProtoDef<Outer> =
             Nested = Nested.GetDefault()
             Imported = Imported.GetDefault()
             EnumImported = EnumImported.GetDefault()
-            UlongFixedHex = UlongFixedHex.GetDefault()
-            Surrogate = Surrogate.GetDefault()
             MaybeDouble = MaybeDouble.GetDefault()
             MaybeFloat = MaybeFloat.GetDefault()
             MaybeInt64 = MaybeInt64.GetDefault()
@@ -450,8 +440,6 @@ let private _OuterProto : ProtoDef<Outer> =
             + Nested.CalcFieldSize m.Nested
             + Imported.CalcFieldSize m.Imported
             + EnumImported.CalcFieldSize m.EnumImported
-            + UlongFixedHex.CalcFieldSize m.UlongFixedHex
-            + Surrogate.CalcFieldSize m.Surrogate
             + MaybeDouble.CalcFieldSize m.MaybeDouble
             + MaybeFloat.CalcFieldSize m.MaybeFloat
             + MaybeInt64.CalcFieldSize m.MaybeInt64
@@ -496,8 +484,6 @@ let private _OuterProto : ProtoDef<Outer> =
             Nested.WriteField w m.Nested
             Imported.WriteField w m.Imported
             EnumImported.WriteField w m.EnumImported
-            UlongFixedHex.WriteField w m.UlongFixedHex
-            Surrogate.WriteField w m.Surrogate
             MaybeDouble.WriteField w m.MaybeDouble
             MaybeFloat.WriteField w m.MaybeFloat
             MaybeInt64.WriteField w m.MaybeInt64
@@ -545,8 +531,6 @@ type Outer = {
     Nested: Ex.Ample.Outer.Nested option // (27)
     Imported: Ex.Ample.Importable.Imported option // (28)
     EnumImported: Ex.Ample.Importable.Imported.EnumForImport // (29)
-    UlongFixedHex: uint64 // (31)
-    Surrogate: Ex.Ample.Importable.Args option // (32)
     MaybeDouble: double option // (33)
     MaybeFloat: float32 option // (34)
     MaybeInt64: int64 option // (35)

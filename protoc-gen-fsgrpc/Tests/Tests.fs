@@ -105,7 +105,7 @@ let ``Generates correct files`` () =
 
     System.IO.Directory.CreateDirectory(outFolder) |> ignore
 
-    let result = run "inputs/protoc" $"--plugin=protoc-gen-fsgrpc={fullPathToPlugin} -Iincludes -Iinputs/proto --fsgrpc_out={outFolder} example.proto importable/importMe.proto"
+    let result = run "inputs/protoc" $"--plugin=protoc-gen-fsgrpc={fullPathToPlugin} -Iinclude -Iinputs/proto --fsgrpc_out={outFolder} example.proto importable/importMe.proto"
     let result =
         match result with
         | Error e -> failwith e
@@ -200,7 +200,6 @@ let ``Basic roundtrip decoding and encoding work from generated file`` () =
             OptionalInt32 = Some 0
             Recursive = Some { Ex.Ample.Outer.empty with StringVal = "Hi" }
             StringVal = "There"
-            Surrogate = None
             Timestamp = Some (NodaTime.Instant.FromUnixTimeSeconds 100000)
             Timestamps = [|
                 (NodaTime.Instant.FromUnixTimeSeconds 100000)
@@ -209,7 +208,6 @@ let ``Basic roundtrip decoding and encoding work from generated file`` () =
             UintFixed = 123456u
             UintVal = 123456u
             UlongFixed = 12345UL
-            UlongFixedHex = 12345UL
             UlongVal = 12345UL
             Union = Ex.Ample.Outer.UnionCase.StringOption "World"
             }
