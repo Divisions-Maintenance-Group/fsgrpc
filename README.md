@@ -23,7 +23,7 @@ You then add the following line to your .fsproj:
 ```xml
 <Import Project="gen/Protobuf.targets" />
 <ItemGroup>
-    <PackageReference Include="FsGrpc" Version="0.9.0-alpha-1" />
+    <PackageReference Include="FsGrpc" Version="0.9.0-alpha*" />
 </ItemGroup>
 ```
 
