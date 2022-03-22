@@ -46,6 +46,10 @@ let private _ImportedProto : ProtoDef<Imported> =
                 builder.Put (tag, r)
             builder.Build
         }
+/// <summary>
+/// This comment had a tag associated
+/// which should be removed
+/// </summary>
 type Imported = {
     // Field Declarations
     Value: string // (1)

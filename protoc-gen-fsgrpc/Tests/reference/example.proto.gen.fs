@@ -4,8 +4,11 @@ open FsGrpc
 #nowarn "40"
 
 
+/// <summary>This is an enumeration</summary>
 type EnumType =
+/// <summary>This is a (default) enumeraton option</summary>
 | None = 0
+/// <summary>This is another enumeration option</summary>
 | One = 1
 | Two = 2
 
@@ -82,6 +85,15 @@ let private _InnerProto : ProtoDef<Inner> =
                 builder.Put (tag, r)
             builder.Build
         }
+/// <summary>
+/// This is a comment
+///    that has multiple lines, where subsequent lines
+///    exhibit indentation
+/// 
+/// We want to ensure that the indentation
+///    of comments like these
+///    is preserved
+/// </summary>
 type Inner = {
     // Field Declarations
     IntFixed: int // (13)
@@ -101,8 +113,11 @@ module Outer =
     [<RequireQualifiedAccess>]
     type UnionCase =
     | None
+    /// <summary>a oneof option that is a message</summary>
     | InnerOption of Ex.Ample.Inner
+    /// <summary>a oneof option that is a string</summary>
     | StringOption of string
+    /// <summary>a message type from another file</summary>
     | ImportedOption of Ex.Ample.Importable.Args
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -193,6 +208,7 @@ module Outer =
         static member empty = _NestedProto.Empty
         static member Proto = lazy _NestedProto
 
+    /// <summary>this enumeration is nested under another class</summary>
     type NestEnumeration =
     | Black = 0
     | Red = 1
@@ -505,45 +521,84 @@ let private _OuterProto : ProtoDef<Outer> =
                 builder.Put (tag, r)
             builder.Build
         }
+/// <summary>This is an "outer" message that will contain other messages</summary>
 type Outer = {
     // Field Declarations
+    /// <summary>primitive double value</summary>
     DoubleVal: double // (1)
+    /// <summary>priviate float value</summary>
     FloatVal: float32 // (2)
+    /// <summary>primitive int64 value</summary>
     LongVal: int64 // (3)
+    /// <summary>primitive uint64 value</summary>
     UlongVal: uint64 // (4)
+    /// <summary>primitive int32 value</summary>
     IntVal: int // (5)
+    /// <summary>primitive fixed64 value</summary>
     UlongFixed: uint64 // (6)
+    /// <summary>primitive fixed32 value</summary>
     UintFixed: uint // (7)
+    /// <summary>primitive bool value</summary>
     BoolVal: bool // (8)
+    /// <summary>primitive string value</summary>
     StringVal: string // (9)
+    /// <summary>primitive bytes value</summary>
     BytesVal: Google.Protobuf.ByteString // (10)
+    /// <summary>primitive uint32 value</summary>
     UintVal: uint32 // (11)
+    /// <summary>enum value</summary>
     EnumVal: Ex.Ample.EnumType // (12)
+    /// <summary>message value (inner)</summary>
     Inner: Ex.Ample.Inner option // (17)
+    /// <summary>repeated of packable primitive</summary>
     Doubles: double seq // (18)
+    /// <summary>repeated of message</summary>
     Inners: Ex.Ample.Inner seq // (19)
+    /// <summary>map with string keys</summary>
     Map: Map<string, string> // (20)
+    /// <summary>map with message values</summary>
     MapInner: Map<string, Ex.Ample.Inner> // (21)
+    /// <summary>map with int keys</summary>
     MapInts: Map<int64, int> // (22)
+    /// <summary>map with bool keys (which is allowed 🤷)</summary>
     MapBool: Map<bool, string> // (23)
+    /// <summary>message value of the same type (recursive)</summary>
     Recursive: Ex.Ample.Outer option // (24)
+    /// <summary>a oneof value</summary>
     Union: Ex.Ample.Outer.UnionCase
+    /// <summary>a message that is defined inside this message</summary>
     Nested: Ex.Ample.Outer.Nested option // (27)
+    /// <summary>a message type that is imported from another file</summary>
     Imported: Ex.Ample.Importable.Imported option // (28)
+    /// <summary>an enumeration imported from another file</summary>
     EnumImported: Ex.Ample.Importable.Imported.EnumForImport // (29)
+    /// <summary>a wrapped double value (the old way of doing optional double)</summary>
     MaybeDouble: double option // (33)
+    /// <summary>a wrapped float value (the old way of doing optional float)</summary>
     MaybeFloat: float32 option // (34)
+    /// <summary>a wrapped int64 value (the old way of doing optional int64)</summary>
     MaybeInt64: int64 option // (35)
+    /// <summary>a wrapped uint64 value (the old way of doing optional uint64)</summary>
     MaybeUint64: uint64 option // (36)
+    /// <summary>a wrapped int32 value (the old way of doing optional int32)</summary>
     MaybeInt32: int option // (37)
+    /// <summary>a wrapped uint32 value (the old way of doing optional uint32)</summary>
     MaybeUint32: uint32 option // (38)
+    /// <summary>a wrapped bool value (the old way of doing optional bool)</summary>
     MaybeBool: bool option // (39)
+    /// <summary>a wrapped string value (the old way of doing optional string)</summary>
     MaybeString: string option // (40)
+    /// <summary>a wrapped bytes value (the old way of doing optional bytes)</summary>
     MaybeBytes: Google.Protobuf.ByteString option // (41)
+    /// <summary>the well-known timestamp</summary>
     Timestamp: NodaTime.Instant option // (42)
+    /// <summary>the well-known duration</summary>
     Duration: NodaTime.Duration option // (43)
+    /// <summary>a proto3 optional int</summary>
     OptionalInt32: int option // (44)
+    /// <summary>a repeated of the old wrapped int64</summary>
     MaybesInt64: int64 seq // (45)
+    /// <summary>a repeated of the well-known timestamp</summary>
     Timestamps: NodaTime.Instant seq // (46)
     }
     with
@@ -649,6 +704,10 @@ let private _ResultEventProto : ProtoDef<ResultEvent> =
                 builder.Put (tag, r)
             builder.Build
         }
+/// <summary>
+/// This is an example of a
+/// multiline-style comment
+/// </summary>
 type ResultEvent = {
     // Field Declarations
     SubscriptionState: Ex.Ample.EnumType // (1)

@@ -11,6 +11,7 @@
   <Import Project="bootstrap/Protobuf.targets" />
 
   <ItemGroup>
+    <Compile Include="Model.fs" />
     <Compile Include="DependencySort.fs" />
     <Compile Include="ChangeCase.fs" />
     <Compile Include="CodeTree.fs" />

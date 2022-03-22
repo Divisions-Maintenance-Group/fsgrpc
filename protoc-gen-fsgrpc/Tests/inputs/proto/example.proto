@@ -14,7 +14,15 @@ enum EnumType {
     ENUM_TYPE_TWO = 2;
 }
 
-// This is an "inner" message which is used within the outer message
+//
+// This is a comment
+//    that has multiple lines, where subsequent lines
+//    exhibit indentation
+//
+// We want to ensure that the indentation
+//    of comments like these
+//    is preserved
+//
 message Inner {
     sfixed32 int_fixed = 13;
     sfixed64 long_fixed = 14;
@@ -133,6 +141,10 @@ message Outer {
     }
 }
 
+/*
+  This is an example of a
+  multiline-style comment
+*/
 message ResultEvent {
     EnumType subscription_state = 1;
     repeated Record records = 2;

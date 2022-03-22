@@ -2,6 +2,8 @@ module ProtocGenFsgrpc.ProtoCodeGen
 open ProtocGenFsgrpc.CodeTree
 open ChangeCase
 open Google.Protobuf
+open ProtoGenFsgrpc.Model
+open System.Text.RegularExpressions
 
 [<Literal>]
 let private bytesFsType = "Google.Protobuf.ByteString"
@@ -25,10 +27,10 @@ let private toRecordFieldName (protoName: string) =
     protoName |> toPascalCase
 
 type NsNode =
-| Message of (NsNode option * DescriptorProto)
-| Enum of (NsNode option * EnumDescriptorProto)
-| File of FileDescriptorProto
-| Files of seq<FileDescriptorProto>
+| Message of (NsNode option * MessageDef)
+| Enum of (NsNode option * EnumDef)
+| File of FileDef
+| Files of seq<FileDef>
 with
     static member protoNameOf (node: NsNode) =
         match node with
@@ -57,8 +59,9 @@ type TypeInfo = {
 }
 
 type TypeMap = (string -> TypeInfo)
+type CommentMap = (string -> string)
 
-let private toFsEnumValueName (enumType: EnumDescriptorProto) (value: EnumValueDescriptorProto) =
+let private toFsEnumValueName (enumType: EnumDef) (value: EnumValueDef) =
     let prefix = toPascalCase enumType.Name
     let fullVal = toPascalCase value.Name
     if fullVal.StartsWith(prefix) then
@@ -66,10 +69,59 @@ let private toFsEnumValueName (enumType: EnumDescriptorProto) (value: EnumValueD
     else
         fullVal
 
-let private toFsEnumValueDef (enumType: EnumDescriptorProto) (value: EnumValueDescriptorProto) =
+let tryMinOr<'T when 'T : comparison> (defVal: 'T) (s: 'T seq) : 'T =
+    let length = s |> Seq.length
+    match length with
+    | 0 -> defVal
+    | _ -> s |> Seq.min
+
+let renderComment comment : CodeNode =
+    match comment with
+    | "" -> Frag []
+    | comment ->
+        let comment = comment.Trim([|'\r'; '\n'|])
+        let lines =
+            Regex.Split(comment, @"\r\n|\r|\n")
+            |> Seq.filter (fun line -> not (Regex.IsMatch (line, @"^\s*(\{[^\}]+\}\s*)+$")))
+            |> List.ofSeq
+        let paddingOf line =
+            let m = Regex.Match (line, "^ *")
+            match m.Success with
+            | true -> m.Value.Length
+            | false -> 0
+        let padding =
+            lines
+            |> Seq.filter (System.String.IsNullOrWhiteSpace >> not)
+            |> Seq.map paddingOf
+            |> (tryMinOr 0)
+        let removePadding (length: int) (line: string) =
+            if line.Length < length then
+                ""
+            else
+                line.Substring(length)
+        match lines with
+        | [] -> Frag []
+        | [line] -> Line $"/// <summary>{line.Substring(padding)}</summary>"
+        | lines -> Frag [
+            Line "/// <summary>"
+            Frag (lines |> Seq.map (fun line -> Line $"/// {removePadding padding line}"))
+            Line "/// </summary>"
+        ]
+
+let commentFrom (sci: Sci option) =
+    match sci with
+    | None -> ""
+    | Some sci ->
+        let comment = sci.LeadingComments
+        comment
+
+let private toFsEnumValueDef (enumType: EnumDef) (value: EnumValueDef) =
     let name = toFsEnumValueName enumType value
     let number = value.Number
-    Line $"| {name} = {number}"
+    Frag [
+        renderComment (commentFrom value.Sci)
+        Line $"| {name} = {number}"
+    ]
 
 [<RequireQualifiedAccess>]
 type ValueType =
@@ -149,7 +201,7 @@ with
         | Repeated _ -> "Repeated"
         | OneofOption _ -> "OneofOption"
         | Map _ -> "Map"
-    static member From (typeMap: TypeMap) (oneofs: int -> string) (field: FieldDescriptorProto) =
+    static member From (typeMap: TypeMap) (oneofs: int -> OneofDef) (field: FieldDef) =
         (* NOTE about "repeated optional"
             it is not legal to use "optional" and "repeated" together so that you cannot do "repeated optional int32" for example
             this is because "optional" allows to distinguish between "not present" and "default value" but there is no way within the wire format to encode a repeated value that is "not present"
@@ -211,7 +263,7 @@ with
                 | _ ->
                     FieldType.Repeated valueType
             | (None, Some index, _, false, _) ->
-                FieldType.OneofOption (valueType, oneofs index)
+                FieldType.OneofOption (valueType, (oneofs index).Name)
             | (None, _, false, _, true) -> FieldType.Optional valueType
             | (None, _, false, true, _) -> FieldType.Optional valueType
             | _ -> FieldType.Primitive valueType
@@ -334,6 +386,7 @@ let private fsBuilderOf (fieldType: FieldType) : FsBuilderType =
 
 type FieldInfo = {
     FsName: string
+    Comment: string
     FsTypeName: string
     FsBuilder: FsBuilderType
     FieldType: FieldType
@@ -342,6 +395,7 @@ type FieldInfo = {
 
 type OneofInfo = {
     FsName: string
+    Comment: string
     Index: int
     Options: FieldInfo list
 }
@@ -350,12 +404,13 @@ type MemberType =
 | Field of FieldInfo
 | Oneof of OneofInfo
 
-let private fieldInfoFrom (typeMap: TypeMap) (oneofs: int -> string) (field: FieldDescriptorProto) : FieldInfo =
+let private fieldInfoFrom (typeMap: TypeMap) (oneofs: int -> OneofDef) (field: FieldDef) : FieldInfo =
     let fieldType = FieldType.From typeMap oneofs field
     let fsTypeName = fsTypeOf fieldType
     let fsBuilder = fsBuilderOf fieldType
     {
         FsName = toRecordFieldName field.Name
+        Comment = commentFrom field.Sci
         FsTypeName = fsTypeName
         FsBuilder = fsBuilder
         FieldType = fieldType
@@ -389,19 +444,21 @@ let private toFsRecordFieldDecl (recordType: string) (field: MemberType) : CodeN
         let fsTypeName = field.FsTypeName
         let tag = field.Tag
         Frag [
-        //Line $"/// <summary>TODO: Field Comments Here</summary>"
+        (renderComment field.Comment)
         Line $"%s{field.FsName}: %s{fsTypeName} // (%d{tag})"
         ]
     | Oneof oneof ->
         Frag [
+        (renderComment oneof.Comment)
         Line $"%s{oneof.FsName}: %s{recordType}.%s{oneof.FsName}Case"
         ]
 
-let private toFsEnumDef (protoEnumDef: EnumDescriptorProto) : CodeNode =
+let private toFsEnumDef (protoEnumDef: EnumDef) : CodeNode =
     let fsName = toFsTypeName protoEnumDef.Name
     let options = protoEnumDef.Values |> Seq.map (toFsEnumValueDef protoEnumDef)
     Frag [
     Line $""
+    renderComment (commentFrom protoEnumDef.Sci)
     Line $"type {fsName} ="
     Frag options
     ]
@@ -511,15 +568,15 @@ let private toProtoDefImpl (ns: string) (protoTypeName: string) (fsTypeName: str
         ]
     ]
 
-let recordMembers (typeMap: TypeMap) (oneofs: OneofDescriptorProto seq) (fields: FieldDescriptorProto seq) : MemberType seq =
+let recordMembers (typeMap: TypeMap) (oneofs: OneofDef seq) (fields: FieldDef seq) : MemberType seq =
     // in the proto definition that we get, the fields of the oneof are flattened and we want to unflatten them here
     // which means replacing the first option with the oneof that contains all of the other options, and then omitting the rest of the options
     let oneofs =
-        let map = oneofs |> Seq.mapi (fun index oneof -> (index, oneof.Name)) |> Map.ofSeq
+        let map = oneofs |> Seq.mapi (fun index oneof -> (index, oneof)) |> Map.ofSeq
         (fun index -> map[index])
     let fieldInfoFrom = fieldInfoFrom typeMap oneofs
     let fields = fields |> Seq.rev
-    let group (members: MemberType list) (field: FieldDescriptorProto) : MemberType list =
+    let group (members: MemberType list) (field: FieldDef) : MemberType list =
         let oneof =
             match field.OneofIndex, field.Proto3Optional with
             | Some oneof, false -> Some oneof
@@ -528,7 +585,15 @@ let recordMembers (typeMap: TypeMap) (oneofs: OneofDescriptorProto seq) (fields:
         let memb =
             match oneof with
             | None -> Field field
-            | Some oneof -> Oneof {FsName = toRecordFieldName (oneofs oneof); Index = oneof; Options = [field]}
+            | Some oneof ->
+                let index = oneof
+                let oneof = oneofs index
+                Oneof {
+                    FsName = toRecordFieldName oneof.Name
+                    Comment = (commentFrom oneof.Sci)
+                    Index = index
+                    Options = [field]
+                }
         let members =
             match members with
             | [] -> [memb]
@@ -544,7 +609,10 @@ let recordMembers (typeMap: TypeMap) (oneofs: OneofDescriptorProto seq) (fields:
     members
 
 let private toOneofOptionDef (option: FieldInfo) =
-    Line $"| {option.FsName} of {option.FsTypeName}"
+    Frag [
+        renderComment option.Comment
+        Line $"| {option.FsName} of {option.FsTypeName}"
+    ]
 
 let private toOneofUnionDefs (oneof: OneofInfo) =
     let optionDefs = oneof.Options |> Seq.map toOneofOptionDef
@@ -556,7 +624,7 @@ let private toOneofUnionDefs (oneof: OneofInfo) =
         Frag optionDefs
     ]
 
-let private isMapType (messageType: DescriptorProto) =
+let private isMapType (messageType: MessageDef) =
     match messageType.Options with
     | Some {MapEntry = true} -> true
     | _ -> false
@@ -608,7 +676,7 @@ let toBuilderInit (m: MemberType) : CodeNode =
         let builderExpr = System.String.Format(builder.BuildExprPattern, fieldExpr)
         Line $"%s{field.FsName} = {builderExpr}"
 
-let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessageDef: DescriptorProto) : CodeNode =
+let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessageDef: MessageDef) : CodeNode =
     let protoName = protoMessageDef.Name
     let fsName = toFsTypeName protoName
     let fsNs = toFsNamespace protoNs
@@ -695,6 +763,7 @@ let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessage
         ]
     | _ ->
         Frag[
+        renderComment (commentFrom protoMessageDef.Sci)
         Line $"type {fsName} = {{"
         Block [
             Line "// Field Declarations"
@@ -707,7 +776,7 @@ let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessage
         ]
     ]
 
-let private toFsRecordDefs (typeMap: TypeMap) (protoNs: string) (protoMessageDefs: DescriptorProto seq) (protoEnumDefs: EnumDescriptorProto seq) : CodeNode =
+let private toFsRecordDefs (typeMap: TypeMap) (protoNs: string) (protoMessageDefs: MessageDef seq) (protoEnumDefs: EnumDef seq) : CodeNode =
     Frag [
     Frag (protoEnumDefs |> Seq.map toFsEnumDef)
     Frag (protoMessageDefs |> Seq.map (toFsRecordDef typeMap protoNs))
@@ -746,7 +815,7 @@ let rec private nsDescendants (node: NsNode) =
     let descendants = children |> Seq.map nsDescendants |> Seq.collect id
     Seq.concat [children; descendants]
 
-let createTypeMap (request: Google.Protobuf.Compiler.CodeGeneratorRequest) : TypeMap =
+let createTypeMap (files: FileDef seq) : TypeMap =
     let leafToMapping nsnode =
         match nsnode with
         | Message _ | Enum _ ->
@@ -759,7 +828,7 @@ let createTypeMap (request: Google.Protobuf.Compiler.CodeGeneratorRequest) : Typ
             Some (protoName, typeInfo)
         | File _ | Files _ ->
             None
-    let nsNodes = Files request.ProtoFiles |> nsDescendants |> Seq.choose leafToMapping
+    let nsNodes = Files files |> nsDescendants |> Seq.choose leafToMapping
     let map = nsNodes |> Map.ofSeq
     let find protoName =
         match map.TryFind(protoName) with
@@ -782,8 +851,8 @@ let private toCompileInclude filename =
     Line $"""<Compile Include="$(MSBuildThisFileDirectory)/{filename}.gen.fs" />"""
 
 
-let private toTargetsFile (files: FileDescriptorProto seq) : CodeNode =
-    let nameOf (file: FileDescriptorProto) = file.Name
+let private toTargetsFile (files: FileDef seq) : CodeNode =
+    let nameOf (file: FileDef) = file.Name
     let tupleByName file = (nameOf file, file)
     let filesByName =
         files
@@ -813,13 +882,14 @@ let private toTargetsFile (files: FileDescriptorProto seq) : CodeNode =
     Line $"""</Project>"""
     ]
 
-let generateTargetsFile (files: FileDescriptorProto seq) (_request: Google.Protobuf.Compiler.CodeGeneratorRequest) =
+let generateTargetsFile (files: FileDef seq) (_request: Google.Protobuf.Compiler.CodeGeneratorRequest) =
     render 0 (toTargetsFile files)
 
-let generateFile (infile: FileDescriptorProto) (typeMap: TypeMap) (_request: Google.Protobuf.Compiler.CodeGeneratorRequest) =
+let generateFile (infile: FileDef) (typeMap: TypeMap) (_request: Google.Protobuf.Compiler.CodeGeneratorRequest) =
     let protoMessageDefs = infile.MessageTypes
     let protoEnumDefs = infile.EnumTypes
-    let _comments = getComments infile.SourceCodeInfo
+    //let comments = getComments infile.SourceCodeInfo
+    //let findComment = comments.TryFind
     let fsNamespace = toFsNamespaceDecl infile.Package
     let fsRecordDefs = toFsRecordDefs typeMap infile.Package protoMessageDefs protoEnumDefs
 

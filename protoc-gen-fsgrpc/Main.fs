@@ -23,10 +23,12 @@ let doGeneration (fromFile: string option) : Google.Protobuf.Compiler.CodeGenera
             File.OpenRead(fromFile) :> System.IO.Stream
     use cis = new CodedInputStream(stream)
     let request = Compiler.CodeGeneratorRequest.Proto.Force().Decode cis
-    let typeMap = ProtoCodeGen.createTypeMap request
-    let protoFiles = request.ProtoFiles
+    let protoFiles = request.ProtoFiles |> Seq.map ProtoGenFsgrpc.Model.FileDef.From
+    let typeMap = ProtoCodeGen.createTypeMap protoFiles
     let isFileToGen file = Seq.exists (fun g -> g = file) request.FilesToGenerate
-    let filesToGen = protoFiles |> Seq.filter (fun f -> isFileToGen f.Name)
+    let filesToGen =
+        protoFiles
+        |> Seq.filter (fun f -> isFileToGen f.Name)
 
     let targetsPath = $"Protobuf.targets"
     eprintf $"Generating: {targetsPath}..."

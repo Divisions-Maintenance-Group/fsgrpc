@@ -1,6 +1,9 @@
 syntax = "proto3";
 package ex.ample.importable;
 
+// This comment had a tag associated
+// {tag: "Value"}
+// which should be removed
 message Imported {
     string value = 1;
 
@@ -10,7 +13,7 @@ message Imported {
     }
 }
 
-// @has-surrogate
+// {tag: "Value"}
 message Args {
     string value = 1;
 }
