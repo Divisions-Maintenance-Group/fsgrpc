@@ -1,0 +1,52 @@
+name: tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  fsgrpc-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: ['6.0.x']
+    defaults:
+      run:
+        working-directory: ./FsGrpc/FsGrpc.Tests
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v2.0.0
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Display version
+        run: dotnet --version
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+  protoc-gen-fsgrpc-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: ['6.0.x']
+    defaults:
+      run:
+        working-directory: ./protoc-gen-fsgrpc/Tests
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v2.0.0
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Display version
+        run: dotnet --version
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
