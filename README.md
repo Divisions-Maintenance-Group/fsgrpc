@@ -70,7 +70,7 @@ The major features intended are:
 - [x] Support for well-known types Duration and Timestamp (represented using NodaTime types)
 - [x] Automatic dependency-sorted inclusion of generated .fs files
 - [x] Buf.build integration
-- [ ] Comment pass-through
+- [x] Comment pass-through
 - [ ] Protocol Buffer reflection
 - [ ] Idiomatic functional implementation for gRPC endpoints
 
