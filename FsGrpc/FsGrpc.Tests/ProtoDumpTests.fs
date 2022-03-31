@@ -59,7 +59,6 @@ let ``Fails if runs out of data on LengthDelimited`` () =
 let ``Dumps remaining  if runs out of data on LengthDelimited`` () =
     let hex = "12080a064d616d6d616c12"
     let dumped = hex |> bytesFromHex |> ProtoDump.toProtoHex
-    printfn "%s" (dumped |> String.concat "\n")
     let expected = [|
         """REMAIN: (18 b) 12080a064d616d6d61"""
         """ERROR: end of bytes with 1 remaining"""
