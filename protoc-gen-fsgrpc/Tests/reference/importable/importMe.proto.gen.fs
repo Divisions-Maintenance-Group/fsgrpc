@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Ex.Ample.Importable
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 

@@ -40,12 +40,12 @@ let message =
 
 Serializing a message to bytes looks like this:
 ```fsharp
-let bytes = message |> FsGrpc.encode
+let bytes = message |> FsGrpc.Protobuf.encode
 ```
 
 And deserializing looks like this:
 ```fsharp
-let message: MyMessage = bytes |> FsGrpc.decode
+let message: MyMessage = bytes |> FsGrpc.Protobuf.decode
 ```
 
 You can also serialize/deserialize from a CodedOutputStream/CodedInputStream using:

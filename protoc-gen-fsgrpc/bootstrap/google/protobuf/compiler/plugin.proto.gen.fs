@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Google.Protobuf.Compiler
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 
@@ -80,9 +80,9 @@ module CodeGeneratorRequest =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable FilesToGenerate: FsGrpc.RepeatedBuilder<string> // (1)
+            val mutable FilesToGenerate: RepeatedBuilder<string> // (1)
             val mutable Parameter: string // (2)
-            val mutable ProtoFiles: FsGrpc.RepeatedBuilder<Google.Protobuf.FileDescriptorProto> // (15)
+            val mutable ProtoFiles: RepeatedBuilder<Google.Protobuf.FileDescriptorProto> // (15)
             val mutable CompilerVersion: OptionBuilder<Google.Protobuf.Compiler.Version> // (3)
         end
         with
@@ -218,7 +218,7 @@ module CodeGeneratorResponse =
         struct
             val mutable Error: string // (1)
             val mutable SupportedFeatures: uint64 // (2)
-            val mutable Files: FsGrpc.RepeatedBuilder<Google.Protobuf.Compiler.CodeGeneratorResponse.File> // (15)
+            val mutable Files: RepeatedBuilder<Google.Protobuf.Compiler.CodeGeneratorResponse.File> // (15)
         end
         with
         member x.Put ((tag, reader): int * Reader) =

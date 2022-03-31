@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Ex.Ample
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 
@@ -160,7 +160,7 @@ module Outer =
         [<System.Runtime.CompilerServices.IsByRefLike>]
         type Builder =
             struct
-                val mutable Enums: FsGrpc.RepeatedBuilder<Ex.Ample.Outer.NestEnumeration> // (1)
+                val mutable Enums: RepeatedBuilder<Ex.Ample.Outer.NestEnumeration> // (1)
                 val mutable Inner: OptionBuilder<Ex.Ample.Inner> // (2)
             end
             with
@@ -230,8 +230,8 @@ module Outer =
             val mutable UintVal: uint32 // (11)
             val mutable EnumVal: Ex.Ample.EnumType // (12)
             val mutable Inner: OptionBuilder<Ex.Ample.Inner> // (17)
-            val mutable Doubles: FsGrpc.RepeatedBuilder<double> // (18)
-            val mutable Inners: FsGrpc.RepeatedBuilder<Ex.Ample.Inner> // (19)
+            val mutable Doubles: RepeatedBuilder<double> // (18)
+            val mutable Inners: RepeatedBuilder<Ex.Ample.Inner> // (19)
             val mutable Map: MapBuilder<string, string> // (20)
             val mutable MapInner: MapBuilder<string, Ex.Ample.Inner> // (21)
             val mutable MapInts: MapBuilder<int64, int> // (22)
@@ -253,8 +253,8 @@ module Outer =
             val mutable Timestamp: OptionBuilder<NodaTime.Instant> // (42)
             val mutable Duration: OptionBuilder<NodaTime.Duration> // (43)
             val mutable OptionalInt32: OptionBuilder<int> // (44)
-            val mutable MaybesInt64: FsGrpc.RepeatedBuilder<int64> // (45)
-            val mutable Timestamps: FsGrpc.RepeatedBuilder<NodaTime.Instant> // (46)
+            val mutable MaybesInt64: RepeatedBuilder<int64> // (45)
+            val mutable Timestamps: RepeatedBuilder<NodaTime.Instant> // (46)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -666,7 +666,7 @@ module ResultEvent =
     type Builder =
         struct
             val mutable SubscriptionState: Ex.Ample.EnumType // (1)
-            val mutable Records: FsGrpc.RepeatedBuilder<Ex.Ample.ResultEvent.Record> // (2)
+            val mutable Records: RepeatedBuilder<Ex.Ample.ResultEvent.Record> // (2)
         end
         with
         member x.Put ((tag, reader): int * Reader) =

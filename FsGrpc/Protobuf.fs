@@ -1,4 +1,4 @@
-module FsGrpc
+module FsGrpc.Protobuf
 open System.IO
 
 let private ``???``<'T> : 'T = raise (System.NotImplementedException())

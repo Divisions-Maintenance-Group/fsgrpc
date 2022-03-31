@@ -1,9 +1,9 @@
-module FsGrpcTests
+module FsGrpc.ProtobufTests
 open Helpers
 
 open System
 open Xunit
-open FsGrpc
+open FsGrpc.Protobuf
 
 open Test.Name.Space
 

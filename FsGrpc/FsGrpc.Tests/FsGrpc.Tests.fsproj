@@ -16,7 +16,7 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="TestCases.fs" />
     <Compile Include="ProtoDumpTests.fs" />
-    <Compile Include="FsGrpcTests.fs" />
+    <Compile Include="ProtobufTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Test.Name.Space
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 
@@ -215,7 +215,7 @@ module Nest =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Children: FsGrpc.RepeatedBuilder<Test.Name.Space.Nest> // (2)
+            val mutable Children: RepeatedBuilder<Test.Name.Space.Nest> // (2)
             val mutable Inner: OptionBuilder<Test.Name.Space.Nest.Inner> // (3)
             val mutable Special: OptionBuilder<Test.Name.Space.Special> // (4)
         end
@@ -284,10 +284,10 @@ module Special =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable IntList: FsGrpc.RepeatedBuilder<int> // (1)
-            val mutable DoubleList: FsGrpc.RepeatedBuilder<double> // (2)
-            val mutable Fixed32List: FsGrpc.RepeatedBuilder<uint> // (3)
-            val mutable StringList: FsGrpc.RepeatedBuilder<string> // (4)
+            val mutable IntList: RepeatedBuilder<int> // (1)
+            val mutable DoubleList: RepeatedBuilder<double> // (2)
+            val mutable Fixed32List: RepeatedBuilder<uint> // (3)
+            val mutable StringList: RepeatedBuilder<string> // (4)
             val mutable Dictionary: MapBuilder<string, string> // (16)
         end
         with
@@ -375,7 +375,7 @@ module Enums =
     type Builder =
         struct
             val mutable MainColor: Test.Name.Space.Enums.Color // (1)
-            val mutable OtherColors: FsGrpc.RepeatedBuilder<Test.Name.Space.Enums.Color> // (2)
+            val mutable OtherColors: RepeatedBuilder<Test.Name.Space.Enums.Color> // (2)
             val mutable ByName: MapBuilder<string, Test.Name.Space.Enums.Color> // (3)
             val mutable Union: OptionBuilder<Test.Name.Space.Enums.UnionCase>
             val mutable MaybeColor: OptionBuilder<Test.Name.Space.Enums.Color> // (6)

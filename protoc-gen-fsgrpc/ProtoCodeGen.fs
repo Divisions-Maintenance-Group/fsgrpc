@@ -371,13 +371,13 @@ let private fsBuilderOf (fieldType: FieldType) : FsBuilderType =
     let fsTypeName =
         match fieldType with
         | Primitive (ValueType.Packed p) ->
-            { Name = $"FsGrpc.RepeatedBuilder<%s{fsValueTypeOf p}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".AddRange ({0}.ReadValue reader)" }
+            { Name = $"RepeatedBuilder<%s{fsValueTypeOf p}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".AddRange ({0}.ReadValue reader)" }
         | Primitive vt ->
             fsBuilderTypeOf vt
         | Optional vt ->
             { Name = $"OptionBuilder<%s{fsValueTypeOf vt}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Set ({0}.ReadValue reader)" }
         | Repeated vt ->
-            { Name = $"FsGrpc.RepeatedBuilder<%s{fsValueTypeOf vt}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Add ({0}.ReadValue reader)" }
+            { Name = $"RepeatedBuilder<%s{fsValueTypeOf vt}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Add ({0}.ReadValue reader)" }
         | OneofOption (vt, _) ->
             { Name = $"%s{fsValueTypeOf vt}"; BuildExprPattern = "{0}.Build"; PutExprPattern = " <- XXX3{0}.ReadValue reader" }
         | Map { Key = k; Value = v } ->
@@ -841,7 +841,7 @@ let private toFsNamespaceDecl (package: string) =
     Frag [
     Line $"[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]"
     Line $"module rec {toFsNamespace package}"
-    Line $"open FsGrpc"
+    Line $"open FsGrpc.Protobuf"
     Line $"#nowarn \"40\"" // TODO: need to see if we can eliminate this, possibly by having the implementation of the field writes be inlined by the generator itself
     ]
 

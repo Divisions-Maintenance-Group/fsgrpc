@@ -1,6 +1,7 @@
 module Tests
 
 open System
+open FsGrpc
 open Xunit
 
 type LaunchResult = {
@@ -211,5 +212,5 @@ let ``Basic roundtrip decoding and encoding work from generated file`` () =
             UlongVal = 12345UL
             Union = Ex.Ample.Outer.UnionCase.StringOption "World"
             }
-    let actual = expected |> FsGrpc.encode |> FsGrpc.decode
+    let actual = expected |> Protobuf.encode |> Protobuf.decode
     Assert.Equal(expected, actual)

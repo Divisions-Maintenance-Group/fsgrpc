@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Google.Protobuf
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 
@@ -10,7 +10,7 @@ module FileDescriptorSet =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Files: FsGrpc.RepeatedBuilder<Google.Protobuf.FileDescriptorProto> // (1)
+            val mutable Files: RepeatedBuilder<Google.Protobuf.FileDescriptorProto> // (1)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -58,13 +58,13 @@ module FileDescriptorProto =
         struct
             val mutable Name: string // (1)
             val mutable Package: string // (2)
-            val mutable Dependencies: FsGrpc.RepeatedBuilder<string> // (3)
-            val mutable PublicDependencies: FsGrpc.RepeatedBuilder<int> // (10)
-            val mutable WeakDependencies: FsGrpc.RepeatedBuilder<int> // (11)
-            val mutable MessageTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto> // (4)
-            val mutable EnumTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (5)
-            val mutable Services: FsGrpc.RepeatedBuilder<Google.Protobuf.ServiceDescriptorProto> // (6)
-            val mutable Extensions: FsGrpc.RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (7)
+            val mutable Dependencies: RepeatedBuilder<string> // (3)
+            val mutable PublicDependencies: RepeatedBuilder<int> // (10)
+            val mutable WeakDependencies: RepeatedBuilder<int> // (11)
+            val mutable MessageTypes: RepeatedBuilder<Google.Protobuf.DescriptorProto> // (4)
+            val mutable EnumTypes: RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (5)
+            val mutable Services: RepeatedBuilder<Google.Protobuf.ServiceDescriptorProto> // (6)
+            val mutable Extensions: RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (7)
             val mutable Options: OptionBuilder<Google.Protobuf.FileOptions> // (8)
             val mutable SourceCodeInfo: OptionBuilder<Google.Protobuf.SourceCodeInfo> // (9)
             val mutable Syntax: string // (12)
@@ -307,15 +307,15 @@ module DescriptorProto =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Fields: FsGrpc.RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (2)
-            val mutable Extensions: FsGrpc.RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (6)
-            val mutable NestedTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto> // (3)
-            val mutable EnumTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (4)
-            val mutable ExtensionRanges: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto.ExtensionRange> // (5)
-            val mutable OneofDecls: FsGrpc.RepeatedBuilder<Google.Protobuf.OneofDescriptorProto> // (8)
+            val mutable Fields: RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (2)
+            val mutable Extensions: RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (6)
+            val mutable NestedTypes: RepeatedBuilder<Google.Protobuf.DescriptorProto> // (3)
+            val mutable EnumTypes: RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (4)
+            val mutable ExtensionRanges: RepeatedBuilder<Google.Protobuf.DescriptorProto.ExtensionRange> // (5)
+            val mutable OneofDecls: RepeatedBuilder<Google.Protobuf.OneofDescriptorProto> // (8)
             val mutable Options: OptionBuilder<Google.Protobuf.MessageOptions> // (7)
-            val mutable ReservedRanges: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto.ReservedRange> // (9)
-            val mutable ReservedNames: FsGrpc.RepeatedBuilder<string> // (10)
+            val mutable ReservedRanges: RepeatedBuilder<Google.Protobuf.DescriptorProto.ReservedRange> // (9)
+            val mutable ReservedNames: RepeatedBuilder<string> // (10)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -424,7 +424,7 @@ module ExtensionRangeOptions =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -732,10 +732,10 @@ module EnumDescriptorProto =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Values: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumValueDescriptorProto> // (2)
+            val mutable Values: RepeatedBuilder<Google.Protobuf.EnumValueDescriptorProto> // (2)
             val mutable Options: OptionBuilder<Google.Protobuf.EnumOptions> // (3)
-            val mutable ReservedRanges: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumDescriptorProto.EnumReservedRange> // (4)
-            val mutable ReservedNames: FsGrpc.RepeatedBuilder<string> // (5)
+            val mutable ReservedRanges: RepeatedBuilder<Google.Protobuf.EnumDescriptorProto.EnumReservedRange> // (4)
+            val mutable ReservedNames: RepeatedBuilder<string> // (5)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -872,7 +872,7 @@ module ServiceDescriptorProto =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Methods: FsGrpc.RepeatedBuilder<Google.Protobuf.MethodDescriptorProto> // (2)
+            val mutable Methods: RepeatedBuilder<Google.Protobuf.MethodDescriptorProto> // (2)
             val mutable Options: OptionBuilder<Google.Protobuf.ServiceOptions> // (3)
         end
         with
@@ -1045,7 +1045,7 @@ module FileOptions =
             val mutable PhpNamespace: string // (41)
             val mutable PhpMetadataNamespace: string // (44)
             val mutable RubyPackage: string // (45)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1235,7 +1235,7 @@ module MessageOptions =
             val mutable NoStandardDescriptorAccessor: bool // (2)
             val mutable Deprecated: bool // (3)
             val mutable MapEntry: bool // (7)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1325,7 +1325,7 @@ module FieldOptions =
             val mutable Lazy: bool // (5)
             val mutable Deprecated: bool // (3)
             val mutable Weak: bool // (10)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1413,7 +1413,7 @@ module OneofOptions =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1461,7 +1461,7 @@ module EnumOptions =
         struct
             val mutable AllowAlias: bool // (2)
             val mutable Deprecated: bool // (3)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1522,7 +1522,7 @@ module EnumValueOptions =
     type Builder =
         struct
             val mutable Deprecated: bool // (1)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1576,7 +1576,7 @@ module ServiceOptions =
     type Builder =
         struct
             val mutable Deprecated: bool // (33)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1636,7 +1636,7 @@ module MethodOptions =
         struct
             val mutable Deprecated: bool // (33)
             val mutable IdempotencyLevel: Google.Protobuf.MethodOptions.IdempotencyLevel // (34)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1760,7 +1760,7 @@ module UninterpretedOption =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Names: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption.NamePart> // (2)
+            val mutable Names: RepeatedBuilder<Google.Protobuf.UninterpretedOption.NamePart> // (2)
             val mutable Value: OptionBuilder<Google.Protobuf.UninterpretedOption.ValueCase>
         end
         with
@@ -1842,11 +1842,11 @@ module SourceCodeInfo =
         [<System.Runtime.CompilerServices.IsByRefLike>]
         type Builder =
             struct
-                val mutable Paths: FsGrpc.RepeatedBuilder<int> // (1)
-                val mutable Spans: FsGrpc.RepeatedBuilder<int> // (2)
+                val mutable Paths: RepeatedBuilder<int> // (1)
+                val mutable Spans: RepeatedBuilder<int> // (2)
                 val mutable LeadingComments: string // (3)
                 val mutable TrailingComments: string // (4)
-                val mutable LeadingDetachedComments: FsGrpc.RepeatedBuilder<string> // (6)
+                val mutable LeadingDetachedComments: RepeatedBuilder<string> // (6)
             end
             with
             member x.Put ((tag, reader): int * Reader) =
@@ -1917,7 +1917,7 @@ module SourceCodeInfo =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Location: FsGrpc.RepeatedBuilder<Google.Protobuf.SourceCodeInfo.Location> // (1)
+            val mutable Location: RepeatedBuilder<Google.Protobuf.SourceCodeInfo.Location> // (1)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1966,7 +1966,7 @@ module GeneratedCodeInfo =
         [<System.Runtime.CompilerServices.IsByRefLike>]
         type Builder =
             struct
-                val mutable Paths: FsGrpc.RepeatedBuilder<int> // (1)
+                val mutable Paths: RepeatedBuilder<int> // (1)
                 val mutable SourceFile: string // (2)
                 val mutable Begin: int // (3)
                 val mutable End: int // (4)
@@ -2033,7 +2033,7 @@ module GeneratedCodeInfo =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Annotations: FsGrpc.RepeatedBuilder<Google.Protobuf.GeneratedCodeInfo.Annotation> // (1)
+            val mutable Annotations: RepeatedBuilder<Google.Protobuf.GeneratedCodeInfo.Annotation> // (1)
         end
         with
         member x.Put ((tag, reader): int * Reader) =

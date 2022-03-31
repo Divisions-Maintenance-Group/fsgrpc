@@ -1,5 +1,6 @@
 ﻿module ProtocGenFsgrpc.Main
 
+open FsGrpc
 open Google.Protobuf
 open System.IO
 
@@ -119,7 +120,7 @@ let main =
         | _ -> doDump dump
     let response =
         { response with SupportedFeatures = 1UL }
-    let encoded = FsGrpc.encode response
+    let encoded = Protobuf.encode response
     use stdout = System.Console.OpenStandardOutput()
     stdout.Write(encoded)
 
