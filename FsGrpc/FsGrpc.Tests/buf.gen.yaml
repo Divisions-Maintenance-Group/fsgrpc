@@ -1,4 +1,5 @@
 version: v1
 plugins:
-  - remote: buf.build/divisions-maintenance-group/plugins/fsharp
+  - name: fsgrpc
+    path: ../../protoc-gen-fsgrpc/bin/Debug/net6.0/protoc-gen-fsgrpc
     out: gen

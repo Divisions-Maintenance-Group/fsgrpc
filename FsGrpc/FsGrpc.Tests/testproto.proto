@@ -40,17 +40,6 @@ message Special {
     repeated double double_list = 2;
     repeated fixed32 fixed32_list = 3;
     repeated string string_list = 4;
-    //repeated bytes bytes_list = 5;
-    //repeated float float_list = 6;
-    //repeated int64 int64_list = 7;
-    //repeated uint64 uint64_list = 8;
-    //repeated fixed64 fixed64_list = 9;
-    //repeated bool bool_list = 10;
-    //repeated uint32 uint32_list = 11;
-    //repeated sfixed32 sfixed32_list = 12;
-    //repeated sfixed64 sfixed64_list = 13;
-    //repeated sint32 sint32_list = 14;
-    //repeated sint64 sint64_list = 15;
     map <string, string> dictionary = 16;
 }
 
