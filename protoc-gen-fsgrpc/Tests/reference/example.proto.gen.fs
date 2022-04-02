@@ -110,6 +110,8 @@ type Inner = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Outer =
 
+    [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
+    [<StructuralEquality;NoComparison>]
     [<RequireQualifiedAccess>]
     type UnionCase =
     | None

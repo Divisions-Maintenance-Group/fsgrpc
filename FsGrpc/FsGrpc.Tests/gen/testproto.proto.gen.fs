@@ -359,6 +359,8 @@ type Special = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Enums =
 
+    [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
+    [<StructuralEquality;NoComparison>]
     [<RequireQualifiedAccess>]
     type UnionCase =
     | None

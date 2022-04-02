@@ -618,6 +618,8 @@ let private toOneofUnionDefs (oneof: OneofInfo) =
     let optionDefs = oneof.Options |> Seq.map toOneofOptionDef
     Frag [
         Line ""
+        Line $"[<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]"
+        Line $"[<StructuralEquality;NoComparison>]"
         Line $"[<RequireQualifiedAccess>]"
         Line $"type {oneof.FsName}Case ="
         Line $"| None"
