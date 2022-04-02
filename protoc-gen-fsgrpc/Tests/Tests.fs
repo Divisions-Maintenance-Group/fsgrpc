@@ -119,11 +119,12 @@ let ``Generates correct files`` () =
         printfn "%s" result.Output
     Assert.Equal(0, result.ExitCode)
     
-    let reference = contentsOfFolder "reference"
-    let actual = contentsOfFolder outFolder
+    let reference = contentsOfFolder "reference" |> Seq.toList
+    let actual = contentsOfFolder outFolder |> Seq.toList
 
     // make sure the actual files match the reference files
-    Assert.Equal<string * string>(reference, actual)
+    let actualMatchesReference = reference = actual
+    Assert.True (actualMatchesReference, $"The actual does not match the reference, bcompare \"./reference\" \"{outFolder}\"")
 
     if System.IO.Directory.Exists (outFolder) then
         System.IO.Directory.Delete (outFolder, true)
