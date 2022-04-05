@@ -20,7 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../FsGrpc/FsGrpc.fsproj" />
+    <ProjectReference Include="./bootstrap-fsgrpc/FsGrpc/FsGrpc.fsproj" Condition="Exists('./bootstrap-fsgrpc/FsGrpc/FsGrpc.fsproj')" />
+    <ProjectReference Include="../FsGrpc/FsGrpc.fsproj" Condition="!Exists('./bootstrap-fsgrpc/FsGrpc/FsGrpc.fsproj')" />
   </ItemGroup>
 
 </Project>
