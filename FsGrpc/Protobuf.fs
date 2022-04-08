@@ -1,12 +1,64 @@
 module FsGrpc.Protobuf
+open System
 open System.IO
+type private Utf8JsonWriter = System.Text.Json.Utf8JsonWriter
+type private JsonSerializerOptions = System.Text.Json.JsonSerializerOptions
 
 let private ``???``<'T> : 'T = raise (System.NotImplementedException())
+
+/// <summary>Signifies that a record is a protobuf message</summary>
+[<AttributeUsage(AttributeTargets.Class)>]
+type MessageAttribute() =
+    inherit System.Attribute()
+
+type ProtobufNameAttribute(name: string) =
+    inherit System.Attribute()
+    member _.Name = name
 
 let read (r: Google.Protobuf.CodedInputStream) (tag: outref<int>) : bool =
     let tagAndType = r.ReadTag ()
     tag <- int (tagAndType >>> 3)
     tagAndType <> 0u
+
+[<RequireQualifiedAccess>]
+type JsonOneofStyle =
+/// <summary>Serializes oneof fields as just another field as though there were no oneof (default behavior of proto3 json)</summary>
+| Inline
+/// <summary>Serializes oneof fields as an object containing one field (default behavior of enums outside of their messages)</summary>
+| Wrapped
+
+[<RequireQualifiedAccess>]
+type JsonEnumStyle =
+| ProtobufName
+| Name
+| Number
+
+[<RequireQualifiedAccess>]
+type JsonOmit =
+| WhenDefault
+| WhenNull
+| Never
+
+type JsonOptions = {
+    Oneofs: JsonOneofStyle
+    Enums: JsonEnumStyle
+    Omit: JsonOmit
+}
+with
+    static member Proto3Defaults =
+        {
+            Oneofs = JsonOneofStyle.Inline
+            Enums = JsonEnumStyle.ProtobufName
+            Omit = JsonOmit.WhenDefault
+        }
+    static member FromJsonSerializerOptions (o:JsonSerializerOptions) =
+        { JsonOptions.Proto3Defaults with
+            Omit =
+                match o.DefaultIgnoreCondition with
+                | System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull -> JsonOmit.WhenNull
+                | System.Text.Json.Serialization.JsonIgnoreCondition.Never -> JsonOmit.Never
+                | _ -> JsonOmit.WhenDefault
+        }
 
 type ProtoDef<'M> = {
     Name: string
@@ -14,10 +66,19 @@ type ProtoDef<'M> = {
     Size: 'M -> int
     Encode: Google.Protobuf.CodedOutputStream -> 'M -> unit
     Decode: Google.Protobuf.CodedInputStream -> 'M
+    EncodeJson: JsonOptions -> Utf8JsonWriter -> 'M -> unit
 }
 
 let inline ProtoOf< ^T when ^T : (static member Proto : Lazy<ProtoDef< ^T>>)> : Lazy<ProtoDef< ^T>> =
     ((^T) : (static member Proto : Lazy<ProtoDef< ^T>>) ())
+
+let ReflectProtoOf<'T> () : ProtoDef<'T> =
+    // find a static member called "Proto"
+    let tipo = typeof<'T>
+    let protoProperty = tipo.GetProperty("Proto", System.Reflection.BindingFlags.Static ||| System.Reflection.BindingFlags.Public)
+    let protoDef = protoProperty.GetValue null
+    let protoDef = protoDef :?> Lazy<ProtoDef< 'T>>
+    protoDef.Force()
 
 let encodeProto<'T> (proto: Lazy<ProtoDef<'T>>) (v: 'T) =
     let {Encode = encodeTo} = proto.Force()
@@ -50,6 +111,7 @@ type Codec = Google.Protobuf.CodedOutputStream
 type Writer = Google.Protobuf.CodedOutputStream
 type Reader = Google.Protobuf.CodedInputStream
 type WireType = Google.Protobuf.WireFormat.WireType
+type JsonWriter = System.Text.Json.Utf8JsonWriter
 
 module WriteTag =
     let Varint (writer: Writer) (tag: int) =
@@ -68,6 +130,7 @@ let private defer v =
 type ValueCodec<'V> = {
     WriteTag: Writer -> int -> unit
     WriteValue: Writer -> 'V -> unit
+    WriteJsonValue: JsonOptions -> JsonWriter -> 'V -> unit
     ReadValue: Reader -> 'V
     RepeatEncoding: RepeatEncoding<'V>
     CalcSize: 'V -> int
@@ -80,21 +143,62 @@ type ValueCodec<'V> = {
     IsNonDefault: 'V -> bool
 }
 
+type OneofCodec = {
+    WriteJsonNoneCase: JsonOptions -> JsonWriter -> unit
+}
+
 let private calcFieldSize (valcodec: ValueCodec<'V>) (tag: int) (value: 'V) =
     if valcodec.IsNonDefault value then
         Writer.ComputeInt32Size(tag <<< 3) +
         valcodec.CalcSize value
     else 0
 
+// WhenWritingDefault is the stricter option (ignores everything WhenWritingNull ignores, plus defaults)
+// therefore the answer to "shouldWrite" that returns false for WhenWritingNull should also return false for WhenWritingDefault
+
+let private shouldWriteNone (o:JsonOptions): bool =
+    match o.Omit with
+    | JsonOmit.WhenNull
+    | JsonOmit.WhenDefault -> false
+    | _ -> true
+
+let private shouldWriteDefault (o:JsonOptions): bool =
+    match o.Omit with
+    | JsonOmit.WhenDefault -> false
+    | _ -> true
+
+// treat empty as a default
+let private shouldWriteEmpty = shouldWriteDefault
+
 let private writeField (valcodec: ValueCodec<'V>) (tag: int) (writer: Writer) (value: 'V) =
     if valcodec.IsNonDefault value then
         valcodec.WriteTag writer tag
         valcodec.WriteValue writer value
 
+let private writeJsonField (valcodec: ValueCodec<'V>) (jsonName: string) =
+    let write (options: JsonOptions) =
+        let shouldWriteDefault = shouldWriteDefault options
+        let write (writer: JsonWriter) =
+            let writeField (value: 'V) =
+                writer.WritePropertyName jsonName
+                valcodec.WriteJsonValue options writer value
+            match shouldWriteDefault with
+            | true ->
+                writeField
+            | false ->
+                let writeIfNonDefault (value: 'V) =
+                    if valcodec.IsNonDefault value then
+                        writeField value
+                writeIfNonDefault
+        write
+    write
+
 module ValueCodec =
     let Double =
-        let writeValue (writer: Writer) (value: double) =
-            writer.WriteDouble(value)
+        let writeValue (writer: Writer): double -> unit =
+            writer.WriteDouble
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): double -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : double =
             reader.ReadDouble ()
         let isNonDefault (value: double) =
@@ -102,6 +206,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Fixed64
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed (Fixed 8)
             CalcSize = Codec.ComputeDoubleSize
@@ -111,6 +216,8 @@ module ValueCodec =
     let Float =
         let writeValue (writer: Writer) (value: float32) =
             writer.WriteFloat(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): float32 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : float32 =
             reader.ReadFloat ()
         let isNonDefault (value: float32) =
@@ -118,6 +225,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Fixed32
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed (Fixed 4)
             CalcSize = Codec.ComputeFloatSize
@@ -127,6 +235,8 @@ module ValueCodec =
     let Int64 =
         let writeValue (writer: Writer) (value: int64) =
             writer.WriteInt64(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): int64 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : int64 =
             reader.ReadInt64 ()
         let isNonDefault (value: int64) =
@@ -134,6 +244,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeInt64Size
@@ -143,6 +254,8 @@ module ValueCodec =
     let UInt64 =
         let writeValue (writer: Writer) (value: uint64) =
             writer.WriteUInt64(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): uint64 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : uint64 =
             reader.ReadUInt64 ()
         let isNonDefault (value: uint64) =
@@ -150,6 +263,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeUInt64Size
@@ -159,6 +273,8 @@ module ValueCodec =
     let Int32 =
         let writeValue (writer: Writer) (value: int32) =
             writer.WriteInt32(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): int32 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : int32 =
             reader.ReadInt32 ()
         let isNonDefault (value: int32) =
@@ -166,6 +282,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeInt32Size
@@ -175,6 +292,8 @@ module ValueCodec =
     let Fixed64 =
         let writeValue (writer: Writer) (value: uint64) =
             writer.WriteFixed64(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): uint64 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : uint64 =
             reader.ReadFixed64 ()
         let isNonDefault (value: uint64) =
@@ -182,6 +301,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Fixed64
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed (Fixed 8)
             CalcSize = Codec.ComputeFixed64Size
@@ -191,6 +311,8 @@ module ValueCodec =
     let Fixed32 =
         let writeValue (writer: Writer) (value: uint32) =
             writer.WriteFixed32(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): uint32 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : uint32 =
             reader.ReadFixed32 ()
         let isNonDefault (value: uint32) =
@@ -198,6 +320,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Fixed32
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed (Fixed 4)
             CalcSize = Codec.ComputeFixed32Size
@@ -207,6 +330,8 @@ module ValueCodec =
     let Bool =
         let writeValue (writer: Writer) (value: bool) =
             writer.WriteBool(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): bool -> unit =
+            writer.WriteBooleanValue
         let readValue (reader: Reader) : bool =
             reader.ReadBool ()
         let isNonDefault (value: bool) =
@@ -214,6 +339,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeBoolSize
@@ -223,6 +349,8 @@ module ValueCodec =
     let String =
         let writeValue (writer: Writer) (value: string) =
             writer.WriteString(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): string -> unit =
+            writer.WriteStringValue
         let readValue (reader: Reader) : string =
             reader.ReadString ()
         let isNonDefault (value: string) =
@@ -230,6 +358,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.LengthDelimited
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Repeat
             CalcSize = Codec.ComputeStringSize
@@ -237,24 +366,31 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
     let Bytes =
-        let writeValue (writer: Writer) (value: Google.Protobuf.ByteString) =
-            writer.WriteBytes(value)
-        let readValue (reader: Reader) : Google.Protobuf.ByteString =
-            reader.ReadBytes ()
-        let isNonDefault (value: Google.Protobuf.ByteString) =
+        let writeValue (writer: Writer) (value: Bytes) =
+            writer.WriteBytes(value.ByteString)
+        let readValue (reader: Reader) : Bytes =
+            Bytes (reader.ReadBytes ())
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter) (b: Bytes) =
+            writer.WriteBase64StringValue b.Data.Span
+        let isNonDefault (value: Bytes) =
             value.Length <> 0
+        let computeSize (value: Bytes) =
+            Codec.ComputeBytesSize value.ByteString
         {
             WriteTag = WriteTag.LengthDelimited
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Repeat
-            CalcSize = Codec.ComputeBytesSize
-            GetDefault = defer Google.Protobuf.ByteString.Empty
+            CalcSize = computeSize
+            GetDefault = defer Bytes.Empty
             IsNonDefault = isNonDefault
         }
     let UInt32 =
         let writeValue (writer: Writer) (value: uint32) =
             writer.WriteUInt32(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): uint32 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : uint32 =
             reader.ReadUInt32 ()
         let isNonDefault (value: uint32) =
@@ -262,6 +398,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeUInt32Size
@@ -271,6 +408,8 @@ module ValueCodec =
     let SFixed32 =
         let writeValue (writer: Writer) (value: int) =
             writer.WriteSFixed32(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): int -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : int =
             reader.ReadSFixed32 ()
         let isNonDefault (value: int) =
@@ -278,6 +417,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Fixed32
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed (Fixed 4)
             CalcSize = Codec.ComputeSFixed32Size
@@ -287,6 +427,8 @@ module ValueCodec =
     let SFixed64 =
         let writeValue (writer: Writer) (value: int64) =
             writer.WriteSFixed64(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): int64 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : int64 =
             reader.ReadSFixed64 ()
         let isNonDefault (value: int64) =
@@ -294,6 +436,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Fixed64
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed (Fixed 8)
             CalcSize = Codec.ComputeSFixed64Size
@@ -303,6 +446,8 @@ module ValueCodec =
     let SInt32 =
         let writeValue (writer: Writer) (value: int) =
             writer.WriteSInt32(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): int -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : int =
             reader.ReadSInt32 ()
         let isNonDefault (value: int) =
@@ -310,6 +455,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeSInt32Size
@@ -319,6 +465,8 @@ module ValueCodec =
     let SInt64 =
         let writeValue (writer: Writer) (value: int64) =
             writer.WriteSInt64(value)
+        let writeJsonValue (_: JsonOptions) (writer: JsonWriter): int64 -> unit =
+            writer.WriteNumberValue
         let readValue (reader: Reader) : int64 =
             reader.ReadSInt64 ()
         let isNonDefault (value: int64) =
@@ -326,6 +474,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = Codec.ComputeSInt64Size
@@ -333,9 +482,33 @@ module ValueCodec =
             IsNonDefault = isNonDefault
         }
 
+    let inline tryCastTo<'T> (a: obj) : 'T option =
+        match a with
+        | :? 'T -> Some (a :?> 'T)
+        | _ -> None
+
+    let inline private writeJsonInt (n: int) (w: Utf8JsonWriter) = w.WriteNumberValue n
+    let inline private writeJsonString (s: string) (w: Utf8JsonWriter) = w.WriteStringValue s
+
     let EnumFor<'E when 'E : equality> (castTo: int -> 'E) (castFrom: 'E -> int) =
         let writeValue (writer: Writer) (value: 'E) =
             Int32.WriteValue writer (castFrom value)
+        let e = typeof<'E>
+        let writeJsonValue (options: JsonOptions) (w: Utf8JsonWriter) (v: 'E) =
+            match options.Enums with
+            | JsonEnumStyle.Number ->
+                writeJsonInt (castFrom v) w
+            | JsonEnumStyle.Name ->
+                let name = v.ToString();
+                writeJsonString name w
+            | JsonEnumStyle.ProtobufName ->
+                let name = v.ToString();
+                let memInfo = e.GetMember(name) |> Seq.find (fun m -> m.DeclaringType = e)
+                let attrs = memInfo.GetCustomAttributes(false)
+                let protoNameAttr = attrs |> Seq.tryPick tryCastTo<ProtobufNameAttribute>
+                match protoNameAttr with
+                | None -> writeJsonString name w
+                | Some attr -> writeJsonString attr.Name w
         let readValue (reader: Reader) : 'E =
             let v = Int32.ReadValue reader
             (castTo v)
@@ -347,6 +520,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.Varint
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Packed Variable
             CalcSize = computeSize
@@ -357,32 +531,41 @@ module ValueCodec =
     let inline Enum<'E when 'E : (static member op_Explicit : 'E -> int) and 'E : enum<int> and 'E : equality> : ValueCodec<'E> =
         EnumFor<'E> LanguagePrimitives.EnumOfValue int
 
+    let private messageCalcSize (proto: Lazy<ProtoDef<'M>>) (m: 'M) =
+        let size = proto.Force().Size m
+        let length = Writer.ComputeLengthSize(size)
+        size + length
+
+    let private messageWriteValue (proto: Lazy<ProtoDef<'M>>) (writer: Writer) (value: 'M) =
+        // this calculates the raw size
+        let size = proto.Force().Size value
+        writer.WriteInt32(size)
+        proto.Force().Encode writer value
+
+    let private messageWriteJsonValue (proto: Lazy<ProtoDef<'M>>) (o: JsonOptions) (w: JsonWriter) (v: 'M) =
+        w.WriteStartObject()
+        proto.Force().EncodeJson o w v
+        w.WriteEndObject()
+    
+    let private messageReadValue (proto: Lazy<ProtoDef<'M>>) (reader: Reader) : 'M =
+        let bytes = reader.ReadBytes()
+        use subreader = bytes.CreateCodedInput()
+        proto.Force().Decode subreader
+
     let MessageFrom<'M when 'M : equality> (proto: Lazy<ProtoDef<'M>>) : ValueCodec<'M> =
         // this calculates the length-prefixed size
-        let calcSize = fun (m: 'M) ->
-            let size = proto.Force().Size m
-            let length = Writer.ComputeLengthSize(size)
-            size + length
         // this will write a length-prefixed message
-        let writeValue (writer: Writer) (value: 'M) =
-            // this calculates the raw size
-            let size = proto.Force().Size value
-            writer.WriteInt32(size)
-            proto.Force().Encode writer value
-        let readValue (reader: Reader) : 'M =
-            let bytes = reader.ReadBytes()
-            use subreader = bytes.CreateCodedInput()
-            proto.Force().Decode subreader
         let isNonDefault (value: 'M) =
             not (value = proto.Force().Empty)
         let getDefault () =
             proto.Force().Empty
         {
             WriteTag = WriteTag.LengthDelimited
-            WriteValue = writeValue
-            ReadValue = readValue
+            WriteValue = messageWriteValue proto
+            WriteJsonValue = messageWriteJsonValue proto
+            ReadValue = messageReadValue proto
             RepeatEncoding = Repeat
-            CalcSize = calcSize
+            CalcSize = messageCalcSize proto
             // the following are not actually used because these are used when this value is used for a non-optional field
             // but protocol buffers doesn't allow non-optional messages,
             // However, if it ever does, then the following should be the correct behavior
@@ -395,10 +578,10 @@ module ValueCodec =
         MessageFrom proto
     
     let Wrap<'P when 'P : equality> (primitive: ValueCodec<'P>) : ValueCodec<'P> =
-        // Note: this will convert the primitive into a message with the value in field 1
+        // Note: this will convert the primitive into a message with the value in field 1 ("value")
         //       but it does not actually handle the optional (None/Nullable) part of this
         //       which will be handled by using this with FieldCodec.Optional as all message types are
-        let wrapProto =
+        let proto =
             lazy
             let defVal = primitive.GetDefault()
             let calcFieldSize = calcFieldSize primitive 1
@@ -418,8 +601,16 @@ module ValueCodec =
                         | 1 -> value <- primitive.ReadValue r
                         | _ -> r.SkipLastField()
                     value
+                // this is implemented for completeness, but
+                // this isn't generally used because the wrapper isn't needed for json encoding
+                // so we've implemented what the json would look like, but there is no purpose for it
+                EncodeJson =
+                    writeJsonField primitive "value"                    
             }
-        MessageFrom wrapProto
+        let wrappedMessageValue = MessageFrom proto
+        { wrappedMessageValue with
+            WriteJsonValue = primitive.WriteJsonValue
+        }
     
     let Packed<'P> (primitive: ValueCodec<'P>) : ValueCodec<'P seq> =
         let valtype =
@@ -435,6 +626,17 @@ module ValueCodec =
             w.WriteLength(size)
             for v in value do
                 primitive.WriteValue w v
+        let writeJsonValue (o: JsonOptions) =
+            let writeItem = primitive.WriteJsonValue o
+            let writeSeq (writer: JsonWriter) =
+                let writeItem = writeItem writer
+                let writeSeq (value: 'P seq) =
+                    writer.WriteStartArray()
+                    for item in value do
+                        writeItem item
+                    writer.WriteEndArray()
+                writeSeq
+            writeSeq
         let readValue (r: Reader) : 'P seq =
             match valtype with
             | Fixed size ->
@@ -465,6 +667,7 @@ module ValueCodec =
         {
             WriteTag = WriteTag.LengthDelimited
             WriteValue = writeValue
+            WriteJsonValue = writeJsonValue
             ReadValue = readValue
             RepeatEncoding = Repeat
             CalcSize = calcSize
@@ -482,6 +685,17 @@ module ValueCodec =
         let calcValSize = calcFieldSize valcodec 2
         let writeKey = writeField keycodec 1
         let writeVal = writeField valcodec 2
+        // the following is included for completeness but isn't used
+        // because json serialization does not serialize records as values but as fields
+        let writeJson o =
+            let writeKey = keycodec.WriteJsonValue o
+            let writeVal = valcodec.WriteJsonValue o
+            let writeJson (w: JsonWriter) ((key, value): 'K * 'V) =
+                w.WritePropertyName "key"
+                writeKey w key
+                w.WritePropertyName "value"
+                writeVal w value
+            writeJson
         { // ProtoDef<MapRecord<'K,'V>>
             Name = "<MapRecord>"
             Empty = defVal
@@ -501,11 +715,26 @@ module ValueCodec =
                     | 2 -> value <- (valcodec.ReadValue r)
                     | _ -> r.SkipLastField()
                 (key, value)
+            EncodeJson = writeJson
         }
 
     let MapRecord<'K, 'V when 'K : equality and 'V : equality> (keycodec: ValueCodec<'K>) (valcodec: ValueCodec<'V>) =
         let proto = createMapRecordProto keycodec valcodec
         MessageFrom proto
+
+    // this exists to satisfy a requirement of proto3 json that "Generated output always contains 0, 3, 6, or 9 fractional digits"
+    let pad3 (str: string) =
+        let ignore = str.IndexOf('.') + 1
+        let len = str.Length - ignore
+        let pad = ((len + 2) / 3) * 3
+        str.Substring(0, ignore) + str.Substring(ignore).PadRight (pad, '0')
+
+    let private instantFormatter = NodaTime.Text.InstantPattern.CreateWithInvariantCulture("uuuu'-'MM'-'dd'T'HH':'mm':'ss;FFFFFFFFF")
+    let private instantToProto3String (instant: NodaTime.Instant) : string =
+        $"{instantFormatter.Format instant |> pad3}Z"
+    let private durationFormatter = NodaTime.Text.DurationPattern.CreateWithInvariantCulture("SS.FFFFFFFFF")
+    let private durationToProto3String (duration: NodaTime.Duration) : string =
+        $"{durationFormatter.Format duration |> pad3}s"
 
     let private epoch = NodaTime.Instant.FromUnixTimeSeconds(0)
     let private timestampProto =
@@ -517,6 +746,12 @@ module ValueCodec =
             (seconds, nanos)
         let compose ((seconds, nanos): (int64 * int32)) =
             NodaTime.Instant.FromUnixTimeSeconds(seconds).PlusNanoseconds(nanos)
+        let writeJson o (w: JsonWriter) (v: NodaTime.Instant) =
+            // this is implemented but is not used because the structured form is not serialized to JSON
+            // but we can't serialize the ISO-string form here because this function only writes the fields (the start object delimiter is already written by this point)
+            let (seconds, nanos) = decompose v
+            w.WriteNumber ("seconds", seconds)
+            w.WriteNumber ("nanos", nanos)
         let defVal = NodaTime.Instant.FromUnixTimeSeconds(0L)
         let calcSecondsSize = calcFieldSize Int64 1
         let calcNanosSize = calcFieldSize Int32 1
@@ -544,6 +779,7 @@ module ValueCodec =
                     | _ -> r.SkipLastField()
                 let value = compose (seconds, nanos)
                 value
+            EncodeJson = writeJson
         }
     
     let private durationProto =
@@ -555,6 +791,12 @@ module ValueCodec =
             (seconds, nanos)
         let compose ((seconds, nanos): (int64 * int32)) =
             NodaTime.Duration.FromSeconds(seconds).Plus(NodaTime.Duration.FromNanoseconds (int64 nanos))
+        let writeJson o (w: JsonWriter) (v: NodaTime.Duration) =
+            // this is implemented but is not used because the structured form is not serialized to JSON
+            // but we can't serialize the ISO-string form here because this function only writes the fields (the start object delimiter is already written by this point)
+            let (seconds, nanos) = decompose v
+            w.WriteNumber ("seconds", seconds)
+            w.WriteNumber ("nanos", nanos)
         let defVal = NodaTime.Duration.Zero
         let calcSecondsSize = calcFieldSize Int64 1
         let calcNanosSize = calcFieldSize Int32 1
@@ -582,10 +824,22 @@ module ValueCodec =
                     | _ -> r.SkipLastField()
                 let value = compose (seconds, nanos)
                 value
+            EncodeJson = writeJson
         }
-    
-    let Timestamp = MessageFrom timestampProto
-    let Duration = MessageFrom durationProto
+
+    let private encodeForJson (encode: 'V -> 'J) (writeValue: JsonOptions -> JsonWriter -> 'J -> unit): JsonOptions -> JsonWriter -> 'V -> unit =
+        let write (o: JsonOptions) (w: JsonWriter) (v: 'V) =
+            writeValue o w (encode v)
+        write
+
+    let Timestamp =
+        { MessageFrom timestampProto with
+            WriteJsonValue = encodeForJson instantToProto3String String.WriteJsonValue
+        }
+    let Duration =
+        { MessageFrom durationProto with
+            WriteJsonValue = encodeForJson durationToProto3String String.WriteJsonValue 
+        }
 
 // A "Field" has a value and a tag
 // 'V is the type of the value of the field on the record
@@ -595,20 +849,22 @@ module ValueCodec =
 type FieldCodec<'V> = {
     CalcFieldSize: 'V -> int
     WriteField: Writer -> 'V -> unit
+    WriteJsonField: JsonOptions -> JsonWriter -> 'V -> unit
     // why does this return a function?
     // see ValueCodec.GetDefault
     GetDefault: unit -> 'V
 }
 
 module FieldCodec =
-    let Primitive<'V> (valcodec: ValueCodec<'V>) (tag: int) : FieldCodec<'V> =
+    let Primitive<'V> (valcodec: ValueCodec<'V>) (tag: int, jsonName: string) : FieldCodec<'V> =
         {
             CalcFieldSize = calcFieldSize valcodec tag
             WriteField = writeField valcodec tag
+            WriteJsonField = writeJsonField valcodec jsonName
             GetDefault = valcodec.GetDefault
         }
     
-    let Optional<'V> (valcodec: ValueCodec<'V>) (tag: int) : FieldCodec<'V option> =
+    let Optional<'V> (valcodec: ValueCodec<'V>) (tag: int, jsonName: string) : FieldCodec<'V option> =
         let calcFieldSize (value: 'V option) =
             match value with
             | None -> 0
@@ -621,13 +877,83 @@ module FieldCodec =
             | Some value ->
                 valcodec.WriteTag writer tag
                 valcodec.WriteValue writer value
+        let writeJsonField (o: JsonOptions) =
+            let write (writer: JsonWriter) =
+                let writeName () =
+                    writer.WritePropertyName jsonName
+                let writeNone () =
+                    if shouldWriteNone o then
+                        writeName ()
+                        writer.WriteNullValue ()
+                let writeValue =
+                    valcodec.WriteJsonValue o writer
+                let write (value: 'V option) =
+                    match value with
+                    | None -> writeNone ()
+                    | Some value ->
+                        writeName ()
+                        writeValue value
+                write
+            write
         {
             CalcFieldSize = calcFieldSize
             WriteField = writeField
+            WriteJsonField = writeJsonField
             GetDefault = defer None
         }
     
-    let Repeated (valcodec: ValueCodec<'T>) (tag: int) : FieldCodec<'T seq> =
+    let Oneof (oneofName: string) : OneofCodec =
+        let writeNone (o: JsonOptions) =
+            match shouldWriteNone o with
+            | true ->
+                let writeJsonNull (w: JsonWriter) =
+                    w.WritePropertyName oneofName
+                    w.WriteNullValue ()
+                writeJsonNull
+            | false ->
+                let nop _ = ()
+                nop
+        {
+            WriteJsonNoneCase = writeNone
+        }
+    
+    let OneofCase<'V> (oneofName: string) (valcodec: ValueCodec<'V>) (tag: int, jsonName: string) : FieldCodec<'V> =
+        let calcFieldSize (value: 'V) =
+            Writer.ComputeInt32Size(tag <<< 3) +
+            valcodec.CalcSize value
+        let writeField (writer: Writer) (value: 'V) =
+            valcodec.WriteTag writer tag
+            valcodec.WriteValue writer value
+        let writeJsonField (o: JsonOptions) =
+            let writeJsonValue = valcodec.WriteJsonValue o
+            let write (writer: JsonWriter) =
+                let inline writeName () =
+                    writer.WritePropertyName jsonName
+                let writeValue =
+                    writeJsonValue writer
+                match o.Oneofs with
+                | JsonOneofStyle.Inline ->
+                    let write (value: 'V) =
+                        writeName ()
+                        writeValue value
+                    write
+                | JsonOneofStyle.Wrapped ->
+                    let write (value: 'V) =
+                        writer.WritePropertyName oneofName
+                        writer.WriteStartObject()
+                        writeName ()
+                        writeValue value
+                        writer.WriteEndObject()
+                    write
+            write
+        {
+            CalcFieldSize = calcFieldSize
+            WriteField = writeField
+            WriteJsonField = writeJsonField
+            GetDefault = valcodec.GetDefault
+        }
+    
+    let Repeated (valcodec: ValueCodec<'T>) (tag: int, jsonName: string) : FieldCodec<'T seq> =
         match valcodec.RepeatEncoding with
         | Packed _ -> failwith "Invalid use of FieldCodec.Repeated for Packed field"
         | Repeat -> ()
@@ -643,19 +969,40 @@ module FieldCodec =
                 let tagSize = Writer.ComputeTagSize(tag)
                 value |> Seq.sumBy (itemFieldSize tagSize)
 
+        let hasItems (value: 'T seq) = not (value |> Seq.isEmpty)
         let writeRepeated (writer: Writer) (value: 'T seq) =
-            if not (value |> Seq.isEmpty) then
+            if hasItems value then
                 for v in value do
                     valcodec.WriteTag writer tag
                     valcodec.WriteValue writer v
+        let writeRepeatedJson (o: JsonOptions) =
+            let shouldWriteEmpty = shouldWriteEmpty o
+            let writeItem = valcodec.WriteJsonValue o
+            let writeSeq (writer: JsonWriter) =
+                let writeItem = writeItem writer
+                let writeSeq (value: 'T seq) =
+                    writer.WritePropertyName jsonName
+                    writer.WriteStartArray()
+                    for item in value do
+                        writeItem item
+                    writer.WriteEndArray()
+                match shouldWriteEmpty with
+                | true -> writeSeq
+                | false ->
+                    let writeNonEmptySeq (value: 'T seq) =
+                        if hasItems value then
+                            writeSeq value
+                    writeNonEmptySeq
+            writeSeq
         {
             CalcFieldSize = sizeOfRepeated
             WriteField = writeRepeated
+            WriteJsonField = writeRepeatedJson
             GetDefault = defer (seq [])
         }
     
     type MapRecord<'K,'V> = ('K * 'V)
-    let Map (keycodec: ValueCodec<'K>) (valcodec: ValueCodec<'V>) (tag: int) : FieldCodec<FSharp.Collections.Map<'K,'V>> =
+    let Map (keycodec: ValueCodec<'K>) (valcodec: ValueCodec<'V>) (tag: int, jsonName: string) : FieldCodec<FSharp.Collections.Map<'K,'V>> =
         let recordCodec = ValueCodec.MapRecord keycodec valcodec
         let sizeOfMap (map: FSharp.Collections.Map<'K, 'V>) =
             if map |> Collections.Map.isEmpty then
@@ -667,14 +1014,38 @@ module FieldCodec =
                     tagSize + dataSize
                 let size = map |> Seq.sumBy itemSize
                 size
+        let hasItems map = not (map |> Collections.Map.isEmpty)
         let writeMap (writer: Writer) (map: FSharp.Collections.Map<'K, 'V>) =
-            if not (map |> Collections.Map.isEmpty) then
+            if hasItems map then
                 for v in map do
                     recordCodec.WriteTag writer tag
                     recordCodec.WriteValue writer (v.Key, v.Value)
+        let writeMapJson (o: JsonOptions) =
+            let shouldWriteEmpty = shouldWriteEmpty o
+            let writeValue = valcodec.WriteJsonValue o
+            let writeMap (writer: JsonWriter) =
+                let writeValue = writeValue writer
+                let writeElement (record: System.Collections.Generic.KeyValuePair<'K,'V>) =
+                    writer.WritePropertyName (string record.Key)
+                    writeValue record.Value
+                let writeSeq (map: FSharp.Collections.Map<'K, 'V>) =
+                    writer.WritePropertyName jsonName
+                    writer.WriteStartObject ()
+                    for record in map do
+                        writeElement record
+                    writer.WriteEndObject ()
+                match shouldWriteEmpty with
+                | true -> writeSeq
+                | false ->
+                    let writeSeqMaybe (map: FSharp.Collections.Map<'K, 'V>) =
+                        if hasItems map then
+                            writeSeq map
+                    writeSeqMaybe
+            writeMap
         {
             CalcFieldSize = sizeOfMap
             WriteField = writeMap
+            WriteJsonField = writeMapJson
             GetDefault = defer FSharp.Collections.Map.empty
         }
     
@@ -741,19 +1112,6 @@ type MapBuilder<'K, 'V when 'K : comparison> =
         | ValueNone -> Map.empty
         | ValueSome list ->
             Map.ofSeq list
-
-[<Struct>]
-type BytesBuilder =
-    val mutable value: Google.Protobuf.ByteString ValueOption
-    member x.Set (value: Google.Protobuf.ByteString) =
-        x.value <-
-            match value.Length with
-            | 0 -> ValueNone
-            | _ -> ValueSome value
-    member x.Build : Google.Protobuf.ByteString =
-        match x.value with
-        | ValueSome v -> v
-        | ValueNone -> Google.Protobuf.ByteString.Empty
 
 [<Struct>]
 type OptionBuilder<'T> =

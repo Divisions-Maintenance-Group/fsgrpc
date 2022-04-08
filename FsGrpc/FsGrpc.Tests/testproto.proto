@@ -67,3 +67,7 @@ message Google {
     google.protobuf.Timestamp timestamp = 3;
     google.protobuf.Duration duration = 4;
 }
+
+message IntMap {
+    map <int32,string> int_map = 1;
+}

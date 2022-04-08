@@ -72,6 +72,7 @@ type FieldDef = {
     // _proto: FieldDescriptorProto
     Sci: Sci option
     Name: string // (1)
+    JsonName: string // (10)
     Number: int // (3)
     Label: Google.Protobuf.FieldDescriptorProto.Label // (4)
     Type: Google.Protobuf.FieldDescriptorProto.Type // (5)
@@ -90,6 +91,7 @@ with
         TypeName = d.TypeName
         Label = d.Label
         Name = d.Name
+        JsonName = d.JsonName
         OneofIndex = d.OneofIndex
         Proto3Optional = d.Proto3Optional
         }

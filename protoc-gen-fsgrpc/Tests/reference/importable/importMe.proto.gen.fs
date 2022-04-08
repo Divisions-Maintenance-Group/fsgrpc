@@ -7,9 +7,10 @@ open FsGrpc.Protobuf
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Imported =
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<EnumForImport>>)>]
     type EnumForImport =
-    | No = 0
-    | Yes = 1
+    | [<FsGrpc.Json.ProtobufName("ENUM_FOR_IMPORT_NO")>] No = 0
+    | [<FsGrpc.Json.ProtobufName("ENUM_FOR_IMPORT_YES")>] Yes = 1
 
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
@@ -27,7 +28,7 @@ module Imported =
 
 let private _ImportedProto : ProtoDef<Imported> =
     // Field Definitions
-    let Value = FieldCodec.Primitive ValueCodec.String 1
+    let Value = FieldCodec.Primitive ValueCodec.String (1, "value")
     // Proto Definition Implementation
     { // ProtoDef<Imported>
         Name = "Imported"
@@ -45,14 +46,20 @@ let private _ImportedProto : ProtoDef<Imported> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: System.Text.Json.JsonSerializerOptions) ->
+            let writeValue = Value.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: Imported) =
+                writeValue w m.Value
+            encode
+    }
 /// <summary>
 /// This comment had a tag associated
 /// which should be removed
 /// </summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type Imported = {
     // Field Declarations
-    Value: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("value")>] Value: string // (1)
     }
     with
     static member empty = _ImportedProto.Empty
@@ -77,7 +84,7 @@ module Args =
 
 let private _ArgsProto : ProtoDef<Args> =
     // Field Definitions
-    let Value = FieldCodec.Primitive ValueCodec.String 1
+    let Value = FieldCodec.Primitive ValueCodec.String (1, "value")
     // Proto Definition Implementation
     { // ProtoDef<Args>
         Name = "Args"
@@ -95,10 +102,16 @@ let private _ArgsProto : ProtoDef<Args> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: System.Text.Json.JsonSerializerOptions) ->
+            let writeValue = Value.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: Args) =
+                writeValue w m.Value
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type Args = {
     // Field Declarations
-    Value: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("value")>] Value: string // (1)
     }
     with
     static member empty = _ArgsProto.Empty

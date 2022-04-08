@@ -1,4 +1,0 @@
-version: v1
-plugins:
-  - remote: buf.build/divisions-maintenance-group/plugins/fsharp
-    out: gen

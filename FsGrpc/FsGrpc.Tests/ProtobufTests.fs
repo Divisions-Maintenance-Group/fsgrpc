@@ -85,7 +85,7 @@ let ``Cannot create Packed of NonPacked`` () =
 
 [<Fact>]
 let ``Cannot create Repeated of Packed`` () =
-    Assert.Throws<System.Exception>(fun () -> FieldCodec.Repeated ValueCodec.Int32 1 |> ignore)
+    Assert.Throws<System.Exception>(fun () -> FieldCodec.Repeated ValueCodec.Int32 (1, "repeat") |> ignore)
 
 [<Fact>]
 let ``Can round trip test messages`` () =
@@ -102,4 +102,46 @@ let ``Can handle split packed fields`` () =
     let hex = "0a030102030 a03040506"
     let actual : Special = hex |> bytesFromHex |> decode
     let expected = { Special.empty with IntList = [|1; 2; 3; 4; 5; 6|]}
+    Assert.Equal(expected, actual)
+
+[<Fact>]
+let ``Default for a message value is empty`` () =
+    let defined = ValueCodec.MessageFrom TestMessage.Proto
+    let defVal = defined.GetDefault()
+    Assert.Equal(defVal, TestMessage.empty)
+
+[<Fact>]
+let ``Nondefault tests for a message value are correct`` () =
+    let defined = ValueCodec.MessageFrom TestMessage.Proto
+    Assert.False(defined.IsNonDefault TestMessage.empty)
+    Assert.True(defined.IsNonDefault {TestMessage.empty with TestInt = 1})
+
+[<Fact>]
+let ``Repeated builder`` () =
+    let mutable builder: RepeatedBuilder<int> = Unchecked.defaultof<_>
+    builder.AddRange [1; 2];
+    builder.AddRange (seq [3; 4]);
+    builder.AddRange (seq [5]);
+    let actual = builder.Build
+    let expected = seq [1; 2; 3; 4; 5]
+    Assert.Equal<int seq> (expected, actual)
+    
+    let mutable builder: RepeatedBuilder<int> = Unchecked.defaultof<_>
+    builder.AddRange [|1; 2|];
+    builder.Add 3
+    let actual = builder.Build
+    let expected = seq [1; 2; 3]
+    Assert.Equal<int seq> (expected, actual)    
+
+[<Fact>]
+let ``Nulls handled by orEmptyString`` () =
+    let s1 = "" |> orEmptyString
+    let s2 = null |> orEmptyString
+    let s3 = "A" |> orEmptyString
+    Assert.Equal (("", "", "A"), (s1, s2, s3))
+
+[<Fact>]
+let ``Size of message with a oneof`` () =
+    let actual = Enums.Proto.Force().Size TestCases.Value5
+    let expected = 33
     Assert.Equal(expected, actual)

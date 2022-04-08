@@ -136,7 +136,7 @@ let ``Basic roundtrip decoding and encoding work from generated file`` () =
     let expected : Ex.Ample.Outer =
         {
             BoolVal = true
-            BytesVal = Google.Protobuf.ByteString.CopyFromUtf8("test")
+            BytesVal = Bytes.FromUtf8("test")
             Doubles = [|1.1; 2.2|]
             DoubleVal = 3.3;
             Duration = Some (NodaTime.Duration.FromDays 1)
