@@ -14,7 +14,7 @@ let Value1 =
         TestDouble = 123.4;
         TestFixed32 = 12345u;
         TestString = "chévere"
-        TestBytes = Google.Protobuf.ByteString.CopyFromUtf8("""¯\_(ツ)_/¯""")
+        TestBytes = FsGrpc.Bytes.FromUtf8("""¯\_(ツ)_/¯""")
         TestFloat = 234.5f
         TestInt64 = 2345678L
         TestUint64 = 3456789UL
@@ -62,6 +62,6 @@ let Value6 =
     { Google.empty with
         Int32Val = Some 0 
         StringVal = Some "X"
-        Timestamp = Some (NodaTime.Instant.FromUnixTimeMilliseconds 12345678L)
-        Duration = Some (NodaTime.Duration.FromMilliseconds 12345678L)
+        Timestamp = Some (NodaTime.Instant.FromUnixTimeMilliseconds 123456780L)
+        Duration = Some (NodaTime.Duration.FromMilliseconds 123456780L)
         }

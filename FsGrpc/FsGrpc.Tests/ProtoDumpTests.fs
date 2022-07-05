@@ -1,6 +1,7 @@
 module ProtoDumpTests
 
 open System
+open FsGrpc
 open Xunit
 open Helpers
 open TestCases
@@ -31,7 +32,7 @@ let ``Flat message dumps correctly`` () =
 
 [<Fact>]
 let ``Nested message dumps correctly`` () =
-    let hex = TestCases.Value3 |> FsGrpc.encode |> bytesToHex
+    let hex = TestCases.Value3 |> Protobuf.encode |> bytesToHex
     let dumped = hex |> bytesFromHex |> ProtoDump.toProtoHex
     let expected = [|
         """[1. <data>] 0a06 416e696d616c"""
@@ -59,7 +60,6 @@ let ``Fails if runs out of data on LengthDelimited`` () =
 let ``Dumps remaining  if runs out of data on LengthDelimited`` () =
     let hex = "12080a064d616d6d616c12"
     let dumped = hex |> bytesFromHex |> ProtoDump.toProtoHex
-    printfn "%s" (dumped |> String.concat "\n")
     let expected = [|
         """REMAIN: (18 b) 12080a064d616d6d61"""
         """ERROR: end of bytes with 1 remaining"""

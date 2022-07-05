@@ -6,7 +6,7 @@ open ProtoGenFsgrpc.Model
 open System.Text.RegularExpressions
 
 [<Literal>]
-let private bytesFsType = "Google.Protobuf.ByteString"
+let private bytesFsType = "FsGrpc.Bytes"
 
 let private nsCombine (ns: string) (name: string) =
     match ns, name with
@@ -116,11 +116,11 @@ let commentFrom (sci: Sci option) =
         comment
 
 let private toFsEnumValueDef (enumType: EnumDef) (value: EnumValueDef) =
-    let name = toFsEnumValueName enumType value
+    let fsName = toFsEnumValueName enumType value
     let number = value.Number
     Frag [
         renderComment (commentFrom value.Sci)
-        Line $"| {name} = {number}"
+        Line $"| [<FsGrpc.Protobuf.ProtobufName(\"{value.Name}\")>] {fsName} = {number}"
     ]
 
 [<RequireQualifiedAccess>]
@@ -192,14 +192,14 @@ type FieldType =
 | Optional of ValueType
 | Repeated of ValueType
 | Map of MapInfo
-| OneofOption of ValueType * string
+| OneofCase of ValueType * unionName: string
 with
     static member NameOf (ft: FieldType) =
         match ft with
         | Primitive _ -> "Primitive"
         | Optional _ -> "Optional"
         | Repeated _ -> "Repeated"
-        | OneofOption _ -> "OneofOption"
+        | OneofCase _ -> "OneofCase"
         | Map _ -> "Map"
     static member From (typeMap: TypeMap) (oneofs: int -> OneofDef) (field: FieldDef) =
         (* NOTE about "repeated optional"
@@ -263,7 +263,7 @@ with
                 | _ ->
                     FieldType.Repeated valueType
             | (None, Some index, _, false, _) ->
-                FieldType.OneofOption (valueType, (oneofs index).Name)
+                FieldType.OneofCase (valueType, (oneofs index).Name)
             | (None, _, false, _, true) -> FieldType.Optional valueType
             | (None, _, false, true, _) -> FieldType.Optional valueType
             | _ -> FieldType.Primitive valueType
@@ -328,7 +328,7 @@ let rec private fsBuilderTypeOf (valueType: ValueType) =
     | ValueType.String ->
         { Name = "string"; BuildExprPattern = "{0} |> orEmptyString"; PutExprPattern = " <- {0}.ReadValue reader" }
     | ValueType.Bytes ->
-        { Name = "BytesBuilder"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Set ({0}.ReadValue reader)" }
+        { Name = "FsGrpc.Bytes"; BuildExprPattern = "{0}"; PutExprPattern = " <- {0}.ReadValue reader" }
     | ValueType.UInt32 ->
         { Name = "uint32"; BuildExprPattern = "{0}"; PutExprPattern = " <- {0}.ReadValue reader" }
     | ValueType.SFixed32 ->
@@ -361,7 +361,7 @@ let private fsTypeOf (fieldType: FieldType) =
             $"%s{fsValueTypeOf vt} option"
         | Repeated vt ->
             $"%s{fsValueTypeOf vt} seq"
-        | OneofOption (vt, _) ->
+        | OneofCase (vt, _) ->
             $"%s{fsValueTypeOf vt}"
         | Map { Key = k; Value = v } ->
             $"Map<%s{fsValueTypeOf k}, %s{fsValueTypeOf v}>"
@@ -371,14 +371,14 @@ let private fsBuilderOf (fieldType: FieldType) : FsBuilderType =
     let fsTypeName =
         match fieldType with
         | Primitive (ValueType.Packed p) ->
-            { Name = $"FsGrpc.RepeatedBuilder<%s{fsValueTypeOf p}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".AddRange ({0}.ReadValue reader)" }
+            { Name = $"RepeatedBuilder<%s{fsValueTypeOf p}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".AddRange ({0}.ReadValue reader)" }
         | Primitive vt ->
             fsBuilderTypeOf vt
         | Optional vt ->
             { Name = $"OptionBuilder<%s{fsValueTypeOf vt}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Set ({0}.ReadValue reader)" }
         | Repeated vt ->
-            { Name = $"FsGrpc.RepeatedBuilder<%s{fsValueTypeOf vt}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Add ({0}.ReadValue reader)" }
-        | OneofOption (vt, _) ->
+            { Name = $"RepeatedBuilder<%s{fsValueTypeOf vt}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = ".Add ({0}.ReadValue reader)" }
+        | OneofCase (vt, _) ->
             { Name = $"%s{fsValueTypeOf vt}"; BuildExprPattern = "{0}.Build"; PutExprPattern = " <- XXX3{0}.ReadValue reader" }
         | Map { Key = k; Value = v } ->
             { Name = $"MapBuilder<%s{fsValueTypeOf k}, %s{fsValueTypeOf v}>"; BuildExprPattern = "{0}.Build"; PutExprPattern = " <- XXX4{0}.ReadValue reader" }
@@ -386,6 +386,7 @@ let private fsBuilderOf (fieldType: FieldType) : FsBuilderType =
 
 type FieldInfo = {
     FsName: string
+    JsonName: string
     Comment: string
     FsTypeName: string
     FsBuilder: FsBuilderType
@@ -394,6 +395,7 @@ type FieldInfo = {
 }
 
 type OneofInfo = {
+    Name: string
     FsName: string
     Comment: string
     Index: int
@@ -404,12 +406,20 @@ type MemberType =
 | Field of FieldInfo
 | Oneof of OneofInfo
 
+let onlyFields (memb: MemberType seq) =
+    let chooseField memb =
+        match memb with
+        | Oneof _ -> None
+        | Field f -> Some f
+    memb |> Seq.choose chooseField
+
 let private fieldInfoFrom (typeMap: TypeMap) (oneofs: int -> OneofDef) (field: FieldDef) : FieldInfo =
     let fieldType = FieldType.From typeMap oneofs field
     let fsTypeName = fsTypeOf fieldType
     let fsBuilder = fsBuilderOf fieldType
     {
         FsName = toRecordFieldName field.Name
+        JsonName = field.JsonName
         Comment = commentFrom field.Sci
         FsTypeName = fsTypeName
         FsBuilder = fsBuilder
@@ -417,26 +427,30 @@ let private fieldInfoFrom (typeMap: TypeMap) (oneofs: int -> OneofDef) (field: F
         Tag = field.Number
     }
 
-let private toFsRecordFieldDef (field: FieldInfo) : CodeNode =
-    let { FieldType = fieldType; Tag = tag } = field
-    let fieldCodecExpr =
-        match fieldType with
-        | Primitive vt
-        | Optional vt
-        | Repeated vt ->
-            let fieldCodecName = FieldType.NameOf fieldType
-            let valueCodec = valueCodecExpr vt
-            $"FieldCodec.%s{fieldCodecName} %s{valueCodec}"
-        | OneofOption (vt, oneof) ->
-            let valueCodec = valueCodecExpr vt
-            $"FieldCodec.Optional %s{valueCodec} (* oneof {oneof} *)"
-        | Map { Key = k; Value = v } ->
-            let vk = valueCodecExpr k
-            let vv = valueCodecExpr v
-            $"FieldCodec.Map %s{vk} %s{vv}"
-    Frag [
-        Line $"let %s{field.FsName} = %s{fieldCodecExpr} %d{tag}"
-    ]
+let private toFsRecordFieldDef (field: MemberType) : CodeNode =
+    match field with
+    | Oneof oneof ->
+        Line $"let %s{oneof.FsName} = FieldCodec.Oneof \"%s{oneof.Name}\""
+    | Field field ->
+        let { FieldType = fieldType; Tag = tag; JsonName = jsonName } = field
+        let fieldCodecExpr =
+            match fieldType with
+            | Primitive vt
+            | Optional vt
+            | Repeated vt ->
+                let fieldCodecName = FieldType.NameOf fieldType
+                let valueCodec = valueCodecExpr vt
+                $"FieldCodec.%s{fieldCodecName} %s{valueCodec}"
+            | OneofCase (vt, oneof) ->
+                let valueCodec = valueCodecExpr vt
+                $"FieldCodec.OneofCase \"%s{oneof}\" %s{valueCodec}"
+            | Map { Key = k; Value = v } ->
+                let vk = valueCodecExpr k
+                let vv = valueCodecExpr v
+                $"FieldCodec.Map %s{vk} %s{vv}"
+        Frag [
+            Line $"let %s{field.FsName} = %s{fieldCodecExpr} (%d{tag}, \"%s{jsonName}\")"
+        ]
 
 let private toFsRecordFieldDecl (recordType: string) (field: MemberType) : CodeNode =
     match field with
@@ -445,7 +459,7 @@ let private toFsRecordFieldDecl (recordType: string) (field: MemberType) : CodeN
         let tag = field.Tag
         Frag [
         (renderComment field.Comment)
-        Line $"%s{field.FsName}: %s{fsTypeName} // (%d{tag})"
+        Line $"[<System.Text.Json.Serialization.JsonPropertyName(\"%s{field.JsonName}\")>] %s{field.FsName}: %s{fsTypeName} // (%d{tag})"
         ]
     | Oneof oneof ->
         Frag [
@@ -459,6 +473,7 @@ let private toFsEnumDef (protoEnumDef: EnumDef) : CodeNode =
     Frag [
     Line $""
     renderComment (commentFrom protoEnumDef.Sci)
+    Line $"[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<{fsName}>>)>]"
     Line $"type {fsName} ="
     Frag options
     ]
@@ -486,7 +501,7 @@ let private toFsRecordFieldSize (ns: string) (field: MemberType) : CodeNode =
         Line $"+ match m.{name} with"
         Block [
             Line $"| {unionFqName}.None -> 0"
-            Frag (oneof.Options |> Seq.map (fun opt -> Line $"| {unionFqName}.{opt.FsName} v -> {opt.FsName}.CalcFieldSize (Some v)"))
+            Frag (oneof.Options |> Seq.map (fun opt -> Line $"| {unionFqName}.{opt.FsName} v -> {opt.FsName}.CalcFieldSize v"))
             ]
         ]
 
@@ -502,7 +517,35 @@ let toFsRecordFieldWrite (ns: string) (field: MemberType) : CodeNode =
         Frag [
         Line $"(match m.{name} with"
         Line $"| {unionFqName}.None -> ()"
-        Frag (oneof.Options |> Seq.map (fun opt -> Line $"| {unionFqName}.{opt.FsName} v -> {opt.FsName}.WriteField w (Some v)"))
+        Frag (oneof.Options |> Seq.map (fun opt -> Line $"| {unionFqName}.{opt.FsName} v -> {opt.FsName}.WriteField w v"))
+        Line $")"
+        ]
+
+let rec toFsRecordFieldJsonOpts (ns: string) (field: MemberType) : CodeNode =
+    match field with
+    | Field field ->
+        let {FsName = name; FieldType = _} = field
+        Line $"let write%s{name} = %s{name}.WriteJsonField o"
+    | Oneof oneof ->
+        let name = oneof.FsName
+        Frag [
+        Line $"let write%s{name}None = %s{name}.WriteJsonNoneCase o"
+        Frag (oneof.Options |> Seq.map MemberType.Field |> Seq.map (toFsRecordFieldJsonOpts ns))
+        ]
+
+let toFsRecordFieldJsonWrite (ns: string) (field: MemberType) : CodeNode =
+    match field with
+    | Field field ->
+        let {FsName = name; FieldType = _} = field
+        Line $"write%s{name} w m.%s{name}"
+    | Oneof oneof ->
+        let name = oneof.FsName
+        let unionName = $"%s{name}Case"
+        let unionFqName = nsCombine ns unionName
+        Frag [
+        Line $"(match m.{name} with"
+        Line $"| {unionFqName}.None -> write%s{name}None w"
+        Frag (oneof.Options |> Seq.map (fun opt -> Line $"| {unionFqName}.{opt.FsName} v -> write{opt.FsName} w v"))
         Line $")"
         ]
 
@@ -563,14 +606,33 @@ let private toProtoDefImpl (ns: string) (protoTypeName: string) (fsTypeName: str
                 ]
                 Line $"builder.Build"
                 ]
-            ]
-        Line $"}}"
         ]
+        match count with
+        | 0 ->
+            Line $"EncodeJson = fun _ _ _ -> ()"
+        | _ ->
+            Frag [
+            Line $"EncodeJson = fun (o: JsonOptions) ->"
+            Block [
+                Frag [
+                Frag (fieldModel |> Seq.map (toFsRecordFieldJsonOpts nsqualifier))
+                Line $"let encode (w: System.Text.Json.Utf8JsonWriter) (m: %s{fsTypeName}) ="
+                Block [
+                    Frag (fieldModel |> Seq.map (toFsRecordFieldJsonWrite nsqualifier))
+                ]
+                Line $"encode"
+                ]
+            ]
+            ]
+        ]
+    Line $"}}"
     ]
 
 let recordMembers (typeMap: TypeMap) (oneofs: OneofDef seq) (fields: FieldDef seq) : MemberType seq =
     // in the proto definition that we get, the fields of the oneof are flattened and we want to unflatten them here
     // which means replacing the first option with the oneof that contains all of the other options, and then omitting the rest of the options
+    // I.e. in:  normal normal oneofcase oneofcase oneofcase normal normal
+    //      out: normal normal oneof(case case case)         normal normal
     let oneofs =
         let map = oneofs |> Seq.mapi (fun index oneof -> (index, oneof)) |> Map.ofSeq
         (fun index -> map[index])
@@ -589,6 +651,7 @@ let recordMembers (typeMap: TypeMap) (oneofs: OneofDef seq) (fields: FieldDef se
                 let index = oneof
                 let oneof = oneofs index
                 Oneof {
+                    Name = oneof.Name
                     FsName = toRecordFieldName oneof.Name
                     Comment = (commentFrom oneof.Sci)
                     Index = index
@@ -611,13 +674,16 @@ let recordMembers (typeMap: TypeMap) (oneofs: OneofDef seq) (fields: FieldDef se
 let private toOneofOptionDef (option: FieldInfo) =
     Frag [
         renderComment option.Comment
-        Line $"| {option.FsName} of {option.FsTypeName}"
+        Line $"| [<System.Text.Json.Serialization.JsonPropertyName(\"{option.JsonName}\")>] {option.FsName} of {option.FsTypeName}"
     ]
 
 let private toOneofUnionDefs (oneof: OneofInfo) =
     let optionDefs = oneof.Options |> Seq.map toOneofOptionDef
     Frag [
         Line ""
+        Line $"[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.OneofConverter<{oneof.FsName}Case>>)>]"
+        Line $"[<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]"
+        Line $"[<StructuralEquality;NoComparison>]"
         Line $"[<RequireQualifiedAccess>]"
         Line $"type {oneof.FsName}Case ="
         Line $"| None"
@@ -656,7 +722,7 @@ let toBuilderPut (f: FieldInfo) : CodeNode =
             let vc = valueCodecExpr vt
             let putExpr = System.String.Format(f.FsBuilder.PutExprPattern, vc)
             $"x.%s{f.FsName}{putExpr}"
-        | OneofOption (a, unionName) ->
+        | OneofCase (a, unionName) ->
             let fsName = toRecordFieldName unionName
             let vc = valueCodecExpr a
             $"x.{fsName}.Set ({fsName}Case.%s{f.FsName} ({vc}.ReadValue reader))"
@@ -686,8 +752,8 @@ let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessage
     // fields contains all fields where oneofs are broken out into their options
     let fields = members |> Seq.collect (fun m ->
         match m with
-        | Oneof {Options = list} -> list
-        | Field field -> [field]
+        | Oneof {Options = list} -> m :: (list |> List.map Field)
+        | Field _ -> [m]
         )
     let fieldDeclarations = members |> Seq.map (toFsRecordFieldDecl fsFqName)
     let fieldDefinitions = fields |> Seq.map toFsRecordFieldDef
@@ -699,7 +765,7 @@ let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessage
     let nestedEnums = protoMessageDef.EnumTypes |> Seq.map toFsEnumDef
 
     let builderFields = members |> Seq.map (toBuilderField fsFqName)
-    let builderPuts = fields |> Seq.map toBuilderPut
+    let builderPuts = fields |> onlyFields |> Seq.map toBuilderPut
     let builderTakes = members |> Seq.map toBuilderInit
 
     let moduleDef =
@@ -764,6 +830,8 @@ let rec private toFsRecordDef (typeMap: TypeMap) (protoNs: string) (protoMessage
     | _ ->
         Frag[
         renderComment (commentFrom protoMessageDef.Sci)
+        Line $"[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]"
+        Line $"[<FsGrpc.Protobuf.Message>]"
         Line $"type {fsName} = {{"
         Block [
             Line "// Field Declarations"
@@ -841,7 +909,7 @@ let private toFsNamespaceDecl (package: string) =
     Frag [
     Line $"[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]"
     Line $"module rec {toFsNamespace package}"
-    Line $"open FsGrpc"
+    Line $"open FsGrpc.Protobuf"
     Line $"#nowarn \"40\"" // TODO: need to see if we can eliminate this, possibly by having the implementation of the field writes be inlined by the generator itself
     ]
 

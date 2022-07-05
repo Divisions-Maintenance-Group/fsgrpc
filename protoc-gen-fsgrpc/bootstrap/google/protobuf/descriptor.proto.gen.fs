@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Google.Protobuf
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 
@@ -10,7 +10,7 @@ module FileDescriptorSet =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Files: FsGrpc.RepeatedBuilder<Google.Protobuf.FileDescriptorProto> // (1)
+            val mutable Files: RepeatedBuilder<Google.Protobuf.FileDescriptorProto> // (1)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -23,7 +23,7 @@ module FileDescriptorSet =
 
 let private _FileDescriptorSetProto : ProtoDef<FileDescriptorSet> =
     // Field Definitions
-    let Files = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FileDescriptorProto> 1
+    let Files = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FileDescriptorProto> (1, "files")
     // Proto Definition Implementation
     { // ProtoDef<FileDescriptorSet>
         Name = "FileDescriptorSet"
@@ -41,10 +41,20 @@ let private _FileDescriptorSetProto : ProtoDef<FileDescriptorSet> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeFiles = Files.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: FileDescriptorSet) =
+                writeFiles w m.Files
+            encode
         }
+/// <summary>
+/// The protocol compiler can output a FileDescriptorSet containing the .proto
+/// files it parses.
+/// </summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type FileDescriptorSet = {
     // Field Declarations
-    Files: Google.Protobuf.FileDescriptorProto seq // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("files")>] Files: Google.Protobuf.FileDescriptorProto seq // (1)
     }
     with
     static member empty = _FileDescriptorSetProto.Empty
@@ -58,13 +68,13 @@ module FileDescriptorProto =
         struct
             val mutable Name: string // (1)
             val mutable Package: string // (2)
-            val mutable Dependencies: FsGrpc.RepeatedBuilder<string> // (3)
-            val mutable PublicDependencies: FsGrpc.RepeatedBuilder<int> // (10)
-            val mutable WeakDependencies: FsGrpc.RepeatedBuilder<int> // (11)
-            val mutable MessageTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto> // (4)
-            val mutable EnumTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (5)
-            val mutable Services: FsGrpc.RepeatedBuilder<Google.Protobuf.ServiceDescriptorProto> // (6)
-            val mutable Extensions: FsGrpc.RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (7)
+            val mutable Dependencies: RepeatedBuilder<string> // (3)
+            val mutable PublicDependencies: RepeatedBuilder<int> // (10)
+            val mutable WeakDependencies: RepeatedBuilder<int> // (11)
+            val mutable MessageTypes: RepeatedBuilder<Google.Protobuf.DescriptorProto> // (4)
+            val mutable EnumTypes: RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (5)
+            val mutable Services: RepeatedBuilder<Google.Protobuf.ServiceDescriptorProto> // (6)
+            val mutable Extensions: RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (7)
             val mutable Options: OptionBuilder<Google.Protobuf.FileOptions> // (8)
             val mutable SourceCodeInfo: OptionBuilder<Google.Protobuf.SourceCodeInfo> // (9)
             val mutable Syntax: string // (12)
@@ -102,18 +112,18 @@ module FileDescriptorProto =
 
 let private _FileDescriptorProtoProto : ProtoDef<FileDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Package = FieldCodec.Primitive ValueCodec.String 2
-    let Dependencies = FieldCodec.Repeated ValueCodec.String 3
-    let PublicDependencies = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) 10
-    let WeakDependencies = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) 11
-    let MessageTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto> 4
-    let EnumTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumDescriptorProto> 5
-    let Services = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.ServiceDescriptorProto> 6
-    let Extensions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FieldDescriptorProto> 7
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.FileOptions> 8
-    let SourceCodeInfo = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.SourceCodeInfo> 9
-    let Syntax = FieldCodec.Primitive ValueCodec.String 12
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Package = FieldCodec.Primitive ValueCodec.String (2, "package")
+    let Dependencies = FieldCodec.Repeated ValueCodec.String (3, "dependencies")
+    let PublicDependencies = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) (10, "publicDependencies")
+    let WeakDependencies = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) (11, "weakDependencies")
+    let MessageTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto> (4, "messageTypes")
+    let EnumTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumDescriptorProto> (5, "enumTypes")
+    let Services = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.ServiceDescriptorProto> (6, "services")
+    let Extensions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FieldDescriptorProto> (7, "extensions")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.FileOptions> (8, "options")
+    let SourceCodeInfo = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.SourceCodeInfo> (9, "sourceCodeInfo")
+    let Syntax = FieldCodec.Primitive ValueCodec.String (12, "syntax")
     // Proto Definition Implementation
     { // ProtoDef<FileDescriptorProto>
         Name = "FileDescriptorProto"
@@ -164,21 +174,67 @@ let private _FileDescriptorProtoProto : ProtoDef<FileDescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writePackage = Package.WriteJsonField o
+            let writeDependencies = Dependencies.WriteJsonField o
+            let writePublicDependencies = PublicDependencies.WriteJsonField o
+            let writeWeakDependencies = WeakDependencies.WriteJsonField o
+            let writeMessageTypes = MessageTypes.WriteJsonField o
+            let writeEnumTypes = EnumTypes.WriteJsonField o
+            let writeServices = Services.WriteJsonField o
+            let writeExtensions = Extensions.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let writeSourceCodeInfo = SourceCodeInfo.WriteJsonField o
+            let writeSyntax = Syntax.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: FileDescriptorProto) =
+                writeName w m.Name
+                writePackage w m.Package
+                writeDependencies w m.Dependencies
+                writePublicDependencies w m.PublicDependencies
+                writeWeakDependencies w m.WeakDependencies
+                writeMessageTypes w m.MessageTypes
+                writeEnumTypes w m.EnumTypes
+                writeServices w m.Services
+                writeExtensions w m.Extensions
+                writeOptions w m.Options
+                writeSourceCodeInfo w m.SourceCodeInfo
+                writeSyntax w m.Syntax
+            encode
         }
+/// <summary>Describes a complete .proto file.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type FileDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Package: string // (2)
-    Dependencies: string seq // (3)
-    PublicDependencies: int seq // (10)
-    WeakDependencies: int seq // (11)
-    MessageTypes: Google.Protobuf.DescriptorProto seq // (4)
-    EnumTypes: Google.Protobuf.EnumDescriptorProto seq // (5)
-    Services: Google.Protobuf.ServiceDescriptorProto seq // (6)
-    Extensions: Google.Protobuf.FieldDescriptorProto seq // (7)
-    Options: Google.Protobuf.FileOptions option // (8)
-    SourceCodeInfo: Google.Protobuf.SourceCodeInfo option // (9)
-    Syntax: string // (12)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("package")>] Package: string // (2)
+    /// <summary>Names of files imported by this file.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("dependencies")>] Dependencies: string seq // (3)
+    /// <summary>Indexes of the public imported files in the dependency list above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("publicDependencies")>] PublicDependencies: int seq // (10)
+    /// <summary>
+    /// Indexes of the weak imported files in the dependency list.
+    /// For Google-internal migration only. Do not use.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("weakDependencies")>] WeakDependencies: int seq // (11)
+    /// <summary>All top-level definitions in this file.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("messageTypes")>] MessageTypes: Google.Protobuf.DescriptorProto seq // (4)
+    [<System.Text.Json.Serialization.JsonPropertyName("enumTypes")>] EnumTypes: Google.Protobuf.EnumDescriptorProto seq // (5)
+    [<System.Text.Json.Serialization.JsonPropertyName("services")>] Services: Google.Protobuf.ServiceDescriptorProto seq // (6)
+    [<System.Text.Json.Serialization.JsonPropertyName("extensions")>] Extensions: Google.Protobuf.FieldDescriptorProto seq // (7)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.FileOptions option // (8)
+    /// <summary>
+    /// This field contains optional information about the original source code.
+    /// You may safely remove this entire field without harming runtime
+    /// functionality of the descriptors -- the information is needed only by
+    /// development tools.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("sourceCodeInfo")>] SourceCodeInfo: Google.Protobuf.SourceCodeInfo option // (9)
+    /// <summary>
+    /// The syntax of the proto file.
+    /// The supported values are "proto2" and "proto3".
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("syntax")>] Syntax: string // (12)
     }
     with
     static member empty = _FileDescriptorProtoProto.Empty
@@ -212,9 +268,9 @@ module DescriptorProto =
 
     let private _ExtensionRangeProto : ProtoDef<ExtensionRange> =
         // Field Definitions
-        let Start = FieldCodec.Primitive ValueCodec.Int32 1
-        let End = FieldCodec.Primitive ValueCodec.Int32 2
-        let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.ExtensionRangeOptions> 3
+        let Start = FieldCodec.Primitive ValueCodec.Int32 (1, "start")
+        let End = FieldCodec.Primitive ValueCodec.Int32 (2, "end")
+        let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.ExtensionRangeOptions> (3, "options")
         // Proto Definition Implementation
         { // ProtoDef<ExtensionRange>
             Name = "ExtensionRange"
@@ -238,12 +294,22 @@ module DescriptorProto =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
+            EncodeJson = fun (o: JsonOptions) ->
+                let writeStart = Start.WriteJsonField o
+                let writeEnd = End.WriteJsonField o
+                let writeOptions = Options.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: ExtensionRange) =
+                    writeStart w m.Start
+                    writeEnd w m.End
+                    writeOptions w m.Options
+                encode
             }
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
     type ExtensionRange = {
         // Field Declarations
-        Start: int // (1)
-        End: int // (2)
-        Options: Google.Protobuf.ExtensionRangeOptions option // (3)
+        [<System.Text.Json.Serialization.JsonPropertyName("start")>] Start: int // (1)
+        [<System.Text.Json.Serialization.JsonPropertyName("end")>] End: int // (2)
+        [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.ExtensionRangeOptions option // (3)
         }
         with
         static member empty = _ExtensionRangeProto.Empty
@@ -271,8 +337,8 @@ module DescriptorProto =
 
     let private _ReservedRangeProto : ProtoDef<ReservedRange> =
         // Field Definitions
-        let Start = FieldCodec.Primitive ValueCodec.Int32 1
-        let End = FieldCodec.Primitive ValueCodec.Int32 2
+        let Start = FieldCodec.Primitive ValueCodec.Int32 (1, "start")
+        let End = FieldCodec.Primitive ValueCodec.Int32 (2, "end")
         // Proto Definition Implementation
         { // ProtoDef<ReservedRange>
             Name = "ReservedRange"
@@ -293,11 +359,24 @@ module DescriptorProto =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
+            EncodeJson = fun (o: JsonOptions) ->
+                let writeStart = Start.WriteJsonField o
+                let writeEnd = End.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: ReservedRange) =
+                    writeStart w m.Start
+                    writeEnd w m.End
+                encode
             }
+    /// <summary>
+    /// Range of reserved tag numbers. Reserved tag numbers may not be used by
+    /// fields or extension ranges in the same message. Reserved ranges may
+    /// not overlap.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
     type ReservedRange = {
         // Field Declarations
-        Start: int // (1)
-        End: int // (2)
+        [<System.Text.Json.Serialization.JsonPropertyName("start")>] Start: int // (1)
+        [<System.Text.Json.Serialization.JsonPropertyName("end")>] End: int // (2)
         }
         with
         static member empty = _ReservedRangeProto.Empty
@@ -307,15 +386,15 @@ module DescriptorProto =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Fields: FsGrpc.RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (2)
-            val mutable Extensions: FsGrpc.RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (6)
-            val mutable NestedTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto> // (3)
-            val mutable EnumTypes: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (4)
-            val mutable ExtensionRanges: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto.ExtensionRange> // (5)
-            val mutable OneofDecls: FsGrpc.RepeatedBuilder<Google.Protobuf.OneofDescriptorProto> // (8)
+            val mutable Fields: RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (2)
+            val mutable Extensions: RepeatedBuilder<Google.Protobuf.FieldDescriptorProto> // (6)
+            val mutable NestedTypes: RepeatedBuilder<Google.Protobuf.DescriptorProto> // (3)
+            val mutable EnumTypes: RepeatedBuilder<Google.Protobuf.EnumDescriptorProto> // (4)
+            val mutable ExtensionRanges: RepeatedBuilder<Google.Protobuf.DescriptorProto.ExtensionRange> // (5)
+            val mutable OneofDecls: RepeatedBuilder<Google.Protobuf.OneofDescriptorProto> // (8)
             val mutable Options: OptionBuilder<Google.Protobuf.MessageOptions> // (7)
-            val mutable ReservedRanges: FsGrpc.RepeatedBuilder<Google.Protobuf.DescriptorProto.ReservedRange> // (9)
-            val mutable ReservedNames: FsGrpc.RepeatedBuilder<string> // (10)
+            val mutable ReservedRanges: RepeatedBuilder<Google.Protobuf.DescriptorProto.ReservedRange> // (9)
+            val mutable ReservedNames: RepeatedBuilder<string> // (10)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -346,16 +425,16 @@ module DescriptorProto =
 
 let private _DescriptorProtoProto : ProtoDef<DescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Fields = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FieldDescriptorProto> 2
-    let Extensions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FieldDescriptorProto> 6
-    let NestedTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto> 3
-    let EnumTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumDescriptorProto> 4
-    let ExtensionRanges = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto.ExtensionRange> 5
-    let OneofDecls = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.OneofDescriptorProto> 8
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.MessageOptions> 7
-    let ReservedRanges = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto.ReservedRange> 9
-    let ReservedNames = FieldCodec.Repeated ValueCodec.String 10
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Fields = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FieldDescriptorProto> (2, "fields")
+    let Extensions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.FieldDescriptorProto> (6, "extensions")
+    let NestedTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto> (3, "nestedTypes")
+    let EnumTypes = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumDescriptorProto> (4, "enumTypes")
+    let ExtensionRanges = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto.ExtensionRange> (5, "extensionRanges")
+    let OneofDecls = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.OneofDescriptorProto> (8, "oneofDecls")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.MessageOptions> (7, "options")
+    let ReservedRanges = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.DescriptorProto.ReservedRange> (9, "reservedRanges")
+    let ReservedNames = FieldCodec.Repeated ValueCodec.String (10, "reservedNames")
     // Proto Definition Implementation
     { // ProtoDef<DescriptorProto>
         Name = "DescriptorProto"
@@ -400,19 +479,48 @@ let private _DescriptorProtoProto : ProtoDef<DescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeFields = Fields.WriteJsonField o
+            let writeExtensions = Extensions.WriteJsonField o
+            let writeNestedTypes = NestedTypes.WriteJsonField o
+            let writeEnumTypes = EnumTypes.WriteJsonField o
+            let writeExtensionRanges = ExtensionRanges.WriteJsonField o
+            let writeOneofDecls = OneofDecls.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let writeReservedRanges = ReservedRanges.WriteJsonField o
+            let writeReservedNames = ReservedNames.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: DescriptorProto) =
+                writeName w m.Name
+                writeFields w m.Fields
+                writeExtensions w m.Extensions
+                writeNestedTypes w m.NestedTypes
+                writeEnumTypes w m.EnumTypes
+                writeExtensionRanges w m.ExtensionRanges
+                writeOneofDecls w m.OneofDecls
+                writeOptions w m.Options
+                writeReservedRanges w m.ReservedRanges
+                writeReservedNames w m.ReservedNames
+            encode
         }
+/// <summary>Describes a message type.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type DescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Fields: Google.Protobuf.FieldDescriptorProto seq // (2)
-    Extensions: Google.Protobuf.FieldDescriptorProto seq // (6)
-    NestedTypes: Google.Protobuf.DescriptorProto seq // (3)
-    EnumTypes: Google.Protobuf.EnumDescriptorProto seq // (4)
-    ExtensionRanges: Google.Protobuf.DescriptorProto.ExtensionRange seq // (5)
-    OneofDecls: Google.Protobuf.OneofDescriptorProto seq // (8)
-    Options: Google.Protobuf.MessageOptions option // (7)
-    ReservedRanges: Google.Protobuf.DescriptorProto.ReservedRange seq // (9)
-    ReservedNames: string seq // (10)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("fields")>] Fields: Google.Protobuf.FieldDescriptorProto seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("extensions")>] Extensions: Google.Protobuf.FieldDescriptorProto seq // (6)
+    [<System.Text.Json.Serialization.JsonPropertyName("nestedTypes")>] NestedTypes: Google.Protobuf.DescriptorProto seq // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("enumTypes")>] EnumTypes: Google.Protobuf.EnumDescriptorProto seq // (4)
+    [<System.Text.Json.Serialization.JsonPropertyName("extensionRanges")>] ExtensionRanges: Google.Protobuf.DescriptorProto.ExtensionRange seq // (5)
+    [<System.Text.Json.Serialization.JsonPropertyName("oneofDecls")>] OneofDecls: Google.Protobuf.OneofDescriptorProto seq // (8)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.MessageOptions option // (7)
+    [<System.Text.Json.Serialization.JsonPropertyName("reservedRanges")>] ReservedRanges: Google.Protobuf.DescriptorProto.ReservedRange seq // (9)
+    /// <summary>
+    /// Reserved field names, which may not be used by fields in the same message.
+    /// A given name may only be reserved once.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("reservedNames")>] ReservedNames: string seq // (10)
     }
     with
     static member empty = _DescriptorProtoProto.Empty
@@ -424,7 +532,7 @@ module ExtensionRangeOptions =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -437,7 +545,7 @@ module ExtensionRangeOptions =
 
 let private _ExtensionRangeOptionsProto : ProtoDef<ExtensionRangeOptions> =
     // Field Definitions
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<ExtensionRangeOptions>
         Name = "ExtensionRangeOptions"
@@ -455,10 +563,17 @@ let private _ExtensionRangeOptionsProto : ProtoDef<ExtensionRangeOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: ExtensionRangeOptions) =
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type ExtensionRangeOptions = {
     // Field Declarations
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _ExtensionRangeOptionsProto.Empty
@@ -467,32 +582,54 @@ type ExtensionRangeOptions = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FieldDescriptorProto =
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<Type>>)>]
     type Type =
-    | Unspecified = 0
-    | Double = 1
-    | Float = 2
-    | Int64 = 3
-    | Uint64 = 4
-    | Int32 = 5
-    | Fixed64 = 6
-    | Fixed32 = 7
-    | Bool = 8
-    | String = 9
-    | Group = 10
-    | Message = 11
-    | Bytes = 12
-    | Uint32 = 13
-    | Enum = 14
-    | Sfixed32 = 15
-    | Sfixed64 = 16
-    | Sint32 = 17
-    | Sint64 = 18
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_UNSPECIFIED")>] Unspecified = 0
+    /// <summary>
+    /// 0 is reserved for errors.
+    /// Order is weird for historical reasons.
+    /// </summary>
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_DOUBLE")>] Double = 1
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_FLOAT")>] Float = 2
+    /// <summary>
+    /// Not ZigZag encoded.  Negative numbers take 10 bytes.  Use TYPE_SINT64 if
+    /// negative values are likely.
+    /// </summary>
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_INT64")>] Int64 = 3
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_UINT64")>] Uint64 = 4
+    /// <summary>
+    /// Not ZigZag encoded.  Negative numbers take 10 bytes.  Use TYPE_SINT32 if
+    /// negative values are likely.
+    /// </summary>
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_INT32")>] Int32 = 5
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_FIXED64")>] Fixed64 = 6
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_FIXED32")>] Fixed32 = 7
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_BOOL")>] Bool = 8
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_STRING")>] String = 9
+    /// <summary>
+    /// Tag-delimited aggregate.
+    /// Group type is deprecated and not supported in proto3. However, Proto3
+    /// implementations should still be able to parse the group wire format and
+    /// treat group fields as unknown fields.
+    /// </summary>
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_GROUP")>] Group = 10
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_MESSAGE")>] Message = 11
+    /// <summary>New in version 2.</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_BYTES")>] Bytes = 12
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_UINT32")>] Uint32 = 13
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_ENUM")>] Enum = 14
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_SFIXED32")>] Sfixed32 = 15
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_SFIXED64")>] Sfixed64 = 16
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_SINT32")>] Sint32 = 17
+    | [<FsGrpc.Protobuf.ProtobufName("TYPE_SINT64")>] Sint64 = 18
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<Label>>)>]
     type Label =
-    | Unspecified = 0
-    | Optional = 1
-    | Required = 2
-    | Repeated = 3
+    | [<FsGrpc.Protobuf.ProtobufName("LABEL_UNSPECIFIED")>] Unspecified = 0
+    /// <summary>0 is reserved for errors</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("LABEL_OPTIONAL")>] Optional = 1
+    | [<FsGrpc.Protobuf.ProtobufName("LABEL_REQUIRED")>] Required = 2
+    | [<FsGrpc.Protobuf.ProtobufName("LABEL_REPEATED")>] Repeated = 3
 
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
@@ -540,17 +677,17 @@ module FieldDescriptorProto =
 
 let private _FieldDescriptorProtoProto : ProtoDef<FieldDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Number = FieldCodec.Primitive ValueCodec.Int32 3
-    let Label = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldDescriptorProto.Label> 4
-    let Type = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldDescriptorProto.Type> 5
-    let TypeName = FieldCodec.Primitive ValueCodec.String 6
-    let Extendee = FieldCodec.Primitive ValueCodec.String 2
-    let DefaultValue = FieldCodec.Primitive ValueCodec.String 7
-    let OneofIndex = FieldCodec.Optional ValueCodec.Int32 9
-    let JsonName = FieldCodec.Primitive ValueCodec.String 10
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.FieldOptions> 8
-    let Proto3Optional = FieldCodec.Primitive ValueCodec.Bool 17
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Number = FieldCodec.Primitive ValueCodec.Int32 (3, "number")
+    let Label = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldDescriptorProto.Label> (4, "label")
+    let Type = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldDescriptorProto.Type> (5, "type")
+    let TypeName = FieldCodec.Primitive ValueCodec.String (6, "typeName")
+    let Extendee = FieldCodec.Primitive ValueCodec.String (2, "extendee")
+    let DefaultValue = FieldCodec.Primitive ValueCodec.String (7, "defaultValue")
+    let OneofIndex = FieldCodec.Optional ValueCodec.Int32 (9, "oneofIndex")
+    let JsonName = FieldCodec.Primitive ValueCodec.String (10, "jsonName")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.FieldOptions> (8, "options")
+    let Proto3Optional = FieldCodec.Primitive ValueCodec.Bool (17, "proto3Optional")
     // Proto Definition Implementation
     { // ProtoDef<FieldDescriptorProto>
         Name = "FieldDescriptorProto"
@@ -598,20 +735,103 @@ let private _FieldDescriptorProtoProto : ProtoDef<FieldDescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeNumber = Number.WriteJsonField o
+            let writeLabel = Label.WriteJsonField o
+            let writeType = Type.WriteJsonField o
+            let writeTypeName = TypeName.WriteJsonField o
+            let writeExtendee = Extendee.WriteJsonField o
+            let writeDefaultValue = DefaultValue.WriteJsonField o
+            let writeOneofIndex = OneofIndex.WriteJsonField o
+            let writeJsonName = JsonName.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let writeProto3Optional = Proto3Optional.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: FieldDescriptorProto) =
+                writeName w m.Name
+                writeNumber w m.Number
+                writeLabel w m.Label
+                writeType w m.Type
+                writeTypeName w m.TypeName
+                writeExtendee w m.Extendee
+                writeDefaultValue w m.DefaultValue
+                writeOneofIndex w m.OneofIndex
+                writeJsonName w m.JsonName
+                writeOptions w m.Options
+                writeProto3Optional w m.Proto3Optional
+            encode
         }
+/// <summary>Describes a field within a message.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type FieldDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Number: int // (3)
-    Label: Google.Protobuf.FieldDescriptorProto.Label // (4)
-    Type: Google.Protobuf.FieldDescriptorProto.Type // (5)
-    TypeName: string // (6)
-    Extendee: string // (2)
-    DefaultValue: string // (7)
-    OneofIndex: int option // (9)
-    JsonName: string // (10)
-    Options: Google.Protobuf.FieldOptions option // (8)
-    Proto3Optional: bool // (17)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("number")>] Number: int // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("label")>] Label: Google.Protobuf.FieldDescriptorProto.Label // (4)
+    /// <summary>
+    /// If type_name is set, this need not be set.  If both this and type_name
+    /// are set, this must be one of TYPE_ENUM, TYPE_MESSAGE or TYPE_GROUP.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("type")>] Type: Google.Protobuf.FieldDescriptorProto.Type // (5)
+    /// <summary>
+    /// For message and enum types, this is the name of the type.  If the name
+    /// starts with a '.', it is fully-qualified.  Otherwise, C++-like scoping
+    /// rules are used to find the type (i.e. first the nested types within this
+    /// message are searched, then within the parent, on up to the root
+    /// namespace).
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("typeName")>] TypeName: string // (6)
+    /// <summary>
+    /// For extensions, this is the name of the type being extended.  It is
+    /// resolved in the same manner as type_name.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("extendee")>] Extendee: string // (2)
+    /// <summary>
+    /// For numeric types, contains the original text representation of the value.
+    /// For booleans, "true" or "false".
+    /// For strings, contains the default text contents (not escaped in any way).
+    /// For bytes, contains the C escaped value.  All bytes >= 128 are escaped.
+    /// TODO(kenton):  Base-64 encode?
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("defaultValue")>] DefaultValue: string // (7)
+    /// <summary>
+    /// If set, gives the index of a oneof in the containing type's oneof_decl
+    /// list.  This field is a member of that oneof.
+    /// TODO: convert to optional and support proto3 optional
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("oneofIndex")>] OneofIndex: int option // (9)
+    /// <summary>
+    /// JSON name of this field. The value is set by protocol compiler. If the
+    /// user has set a "json_name" option on this field, that option's value
+    /// will be used. Otherwise, it's deduced from the field's name by converting
+    /// it to camelCase.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("jsonName")>] JsonName: string // (10)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.FieldOptions option // (8)
+    /// <summary>
+    /// If true, this is a proto3 "optional". When a proto3 field is optional, it
+    /// tracks presence regardless of field type.
+    /// 
+    /// When proto3_optional is true, this field must be belong to a oneof to
+    /// signal to old proto3 clients that presence is tracked for this field. This
+    /// oneof is known as a "synthetic" oneof, and this field must be its sole
+    /// member (each proto3 optional field gets its own synthetic oneof). Synthetic
+    /// oneofs exist in the descriptor only, and do not generate any API. Synthetic
+    /// oneofs must be ordered after all "real" oneofs.
+    /// 
+    /// For message fields, proto3_optional doesn't create any semantic change,
+    /// since non-repeated message fields always track presence. However it still
+    /// indicates the semantic detail of whether the user wrote "optional" or not.
+    /// This can be useful for round-tripping the .proto file. For consistency we
+    /// give message fields a synthetic oneof also, even though it is not required
+    /// to track presence. This is especially important because the parser can't
+    /// tell if a field is a message or an enum, so it must always create a
+    /// synthetic oneof.
+    /// 
+    /// Proto2 optional fields do not set this flag, because they already indicate
+    /// optional with `LABEL_OPTIONAL`.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("proto3Optional")>] Proto3Optional: bool // (17)
     }
     with
     static member empty = _FieldDescriptorProtoProto.Empty
@@ -639,8 +859,8 @@ module OneofDescriptorProto =
 
 let private _OneofDescriptorProtoProto : ProtoDef<OneofDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.OneofOptions> 2
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.OneofOptions> (2, "options")
     // Proto Definition Implementation
     { // ProtoDef<OneofDescriptorProto>
         Name = "OneofDescriptorProto"
@@ -661,11 +881,20 @@ let private _OneofDescriptorProtoProto : ProtoDef<OneofDescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: OneofDescriptorProto) =
+                writeName w m.Name
+                writeOptions w m.Options
+            encode
         }
+/// <summary>Describes a oneof.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type OneofDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Options: Google.Protobuf.OneofOptions option // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.OneofOptions option // (2)
     }
     with
     static member empty = _OneofDescriptorProtoProto.Empty
@@ -696,8 +925,8 @@ module EnumDescriptorProto =
 
     let private _EnumReservedRangeProto : ProtoDef<EnumReservedRange> =
         // Field Definitions
-        let Start = FieldCodec.Primitive ValueCodec.Int32 1
-        let End = FieldCodec.Primitive ValueCodec.Int32 2
+        let Start = FieldCodec.Primitive ValueCodec.Int32 (1, "start")
+        let End = FieldCodec.Primitive ValueCodec.Int32 (2, "end")
         // Proto Definition Implementation
         { // ProtoDef<EnumReservedRange>
             Name = "EnumReservedRange"
@@ -718,11 +947,27 @@ module EnumDescriptorProto =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
+            EncodeJson = fun (o: JsonOptions) ->
+                let writeStart = Start.WriteJsonField o
+                let writeEnd = End.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: EnumReservedRange) =
+                    writeStart w m.Start
+                    writeEnd w m.End
+                encode
             }
+    /// <summary>
+    /// Range of reserved numeric values. Reserved values may not be used by
+    /// entries in the same enum. Reserved ranges may not overlap.
+    /// 
+    /// Note that this is distinct from DescriptorProto.ReservedRange in that it
+    /// is inclusive such that it can appropriately represent the entire int32
+    /// domain.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
     type EnumReservedRange = {
         // Field Declarations
-        Start: int // (1)
-        End: int // (2)
+        [<System.Text.Json.Serialization.JsonPropertyName("start")>] Start: int // (1)
+        [<System.Text.Json.Serialization.JsonPropertyName("end")>] End: int // (2)
         }
         with
         static member empty = _EnumReservedRangeProto.Empty
@@ -732,10 +977,10 @@ module EnumDescriptorProto =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Values: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumValueDescriptorProto> // (2)
+            val mutable Values: RepeatedBuilder<Google.Protobuf.EnumValueDescriptorProto> // (2)
             val mutable Options: OptionBuilder<Google.Protobuf.EnumOptions> // (3)
-            val mutable ReservedRanges: FsGrpc.RepeatedBuilder<Google.Protobuf.EnumDescriptorProto.EnumReservedRange> // (4)
-            val mutable ReservedNames: FsGrpc.RepeatedBuilder<string> // (5)
+            val mutable ReservedRanges: RepeatedBuilder<Google.Protobuf.EnumDescriptorProto.EnumReservedRange> // (4)
+            val mutable ReservedNames: RepeatedBuilder<string> // (5)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -756,11 +1001,11 @@ module EnumDescriptorProto =
 
 let private _EnumDescriptorProtoProto : ProtoDef<EnumDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Values = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumValueDescriptorProto> 2
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.EnumOptions> 3
-    let ReservedRanges = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumDescriptorProto.EnumReservedRange> 4
-    let ReservedNames = FieldCodec.Repeated ValueCodec.String 5
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Values = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumValueDescriptorProto> (2, "values")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.EnumOptions> (3, "options")
+    let ReservedRanges = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.EnumDescriptorProto.EnumReservedRange> (4, "reservedRanges")
+    let ReservedNames = FieldCodec.Repeated ValueCodec.String (5, "reservedNames")
     // Proto Definition Implementation
     { // ProtoDef<EnumDescriptorProto>
         Name = "EnumDescriptorProto"
@@ -790,14 +1035,38 @@ let private _EnumDescriptorProtoProto : ProtoDef<EnumDescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeValues = Values.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let writeReservedRanges = ReservedRanges.WriteJsonField o
+            let writeReservedNames = ReservedNames.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: EnumDescriptorProto) =
+                writeName w m.Name
+                writeValues w m.Values
+                writeOptions w m.Options
+                writeReservedRanges w m.ReservedRanges
+                writeReservedNames w m.ReservedNames
+            encode
         }
+/// <summary>Describes an enum type.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type EnumDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Values: Google.Protobuf.EnumValueDescriptorProto seq // (2)
-    Options: Google.Protobuf.EnumOptions option // (3)
-    ReservedRanges: Google.Protobuf.EnumDescriptorProto.EnumReservedRange seq // (4)
-    ReservedNames: string seq // (5)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("values")>] Values: Google.Protobuf.EnumValueDescriptorProto seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.EnumOptions option // (3)
+    /// <summary>
+    /// Range of reserved numeric values. Reserved numeric values may not be used
+    /// by enum values in the same enum declaration. Reserved ranges may not
+    /// overlap.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("reservedRanges")>] ReservedRanges: Google.Protobuf.EnumDescriptorProto.EnumReservedRange seq // (4)
+    /// <summary>
+    /// Reserved enum value names, which may not be reused. A given name may only
+    /// be reserved once.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("reservedNames")>] ReservedNames: string seq // (5)
     }
     with
     static member empty = _EnumDescriptorProtoProto.Empty
@@ -828,9 +1097,9 @@ module EnumValueDescriptorProto =
 
 let private _EnumValueDescriptorProtoProto : ProtoDef<EnumValueDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Number = FieldCodec.Primitive ValueCodec.Int32 2
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.EnumValueOptions> 3
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Number = FieldCodec.Primitive ValueCodec.Int32 (2, "number")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.EnumValueOptions> (3, "options")
     // Proto Definition Implementation
     { // ProtoDef<EnumValueDescriptorProto>
         Name = "EnumValueDescriptorProto"
@@ -854,12 +1123,23 @@ let private _EnumValueDescriptorProtoProto : ProtoDef<EnumValueDescriptorProto> 
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeNumber = Number.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: EnumValueDescriptorProto) =
+                writeName w m.Name
+                writeNumber w m.Number
+                writeOptions w m.Options
+            encode
         }
+/// <summary>Describes a value within an enum.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type EnumValueDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Number: int // (2)
-    Options: Google.Protobuf.EnumValueOptions option // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("number")>] Number: int // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.EnumValueOptions option // (3)
     }
     with
     static member empty = _EnumValueDescriptorProtoProto.Empty
@@ -872,7 +1152,7 @@ module ServiceDescriptorProto =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Methods: FsGrpc.RepeatedBuilder<Google.Protobuf.MethodDescriptorProto> // (2)
+            val mutable Methods: RepeatedBuilder<Google.Protobuf.MethodDescriptorProto> // (2)
             val mutable Options: OptionBuilder<Google.Protobuf.ServiceOptions> // (3)
         end
         with
@@ -890,9 +1170,9 @@ module ServiceDescriptorProto =
 
 let private _ServiceDescriptorProtoProto : ProtoDef<ServiceDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Methods = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.MethodDescriptorProto> 2
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.ServiceOptions> 3
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Methods = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.MethodDescriptorProto> (2, "methods")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.ServiceOptions> (3, "options")
     // Proto Definition Implementation
     { // ProtoDef<ServiceDescriptorProto>
         Name = "ServiceDescriptorProto"
@@ -916,12 +1196,23 @@ let private _ServiceDescriptorProtoProto : ProtoDef<ServiceDescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeMethods = Methods.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: ServiceDescriptorProto) =
+                writeName w m.Name
+                writeMethods w m.Methods
+                writeOptions w m.Options
+            encode
         }
+/// <summary>Describes a service.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type ServiceDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    Methods: Google.Protobuf.MethodDescriptorProto seq // (2)
-    Options: Google.Protobuf.ServiceOptions option // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("methods")>] Methods: Google.Protobuf.MethodDescriptorProto seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.ServiceOptions option // (3)
     }
     with
     static member empty = _ServiceDescriptorProtoProto.Empty
@@ -961,12 +1252,12 @@ module MethodDescriptorProto =
 
 let private _MethodDescriptorProtoProto : ProtoDef<MethodDescriptorProto> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let InputType = FieldCodec.Primitive ValueCodec.String 2
-    let OutputType = FieldCodec.Primitive ValueCodec.String 3
-    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.MethodOptions> 4
-    let ClientStreaming = FieldCodec.Primitive ValueCodec.Bool 5
-    let ServerStreaming = FieldCodec.Primitive ValueCodec.Bool 6
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let InputType = FieldCodec.Primitive ValueCodec.String (2, "inputType")
+    let OutputType = FieldCodec.Primitive ValueCodec.String (3, "outputType")
+    let Options = FieldCodec.Optional ValueCodec.Message<Google.Protobuf.MethodOptions> (4, "options")
+    let ClientStreaming = FieldCodec.Primitive ValueCodec.Bool (5, "clientStreaming")
+    let ServerStreaming = FieldCodec.Primitive ValueCodec.Bool (6, "serverStreaming")
     // Proto Definition Implementation
     { // ProtoDef<MethodDescriptorProto>
         Name = "MethodDescriptorProto"
@@ -999,15 +1290,38 @@ let private _MethodDescriptorProtoProto : ProtoDef<MethodDescriptorProto> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeInputType = InputType.WriteJsonField o
+            let writeOutputType = OutputType.WriteJsonField o
+            let writeOptions = Options.WriteJsonField o
+            let writeClientStreaming = ClientStreaming.WriteJsonField o
+            let writeServerStreaming = ServerStreaming.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: MethodDescriptorProto) =
+                writeName w m.Name
+                writeInputType w m.InputType
+                writeOutputType w m.OutputType
+                writeOptions w m.Options
+                writeClientStreaming w m.ClientStreaming
+                writeServerStreaming w m.ServerStreaming
+            encode
         }
+/// <summary>Describes a method of a service.</summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type MethodDescriptorProto = {
     // Field Declarations
-    Name: string // (1)
-    InputType: string // (2)
-    OutputType: string // (3)
-    Options: Google.Protobuf.MethodOptions option // (4)
-    ClientStreaming: bool // (5)
-    ServerStreaming: bool // (6)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    /// <summary>
+    /// Input and output type names.  These are resolved in the same way as
+    /// FieldDescriptorProto.type_name, but must refer to a message type.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("inputType")>] InputType: string // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("outputType")>] OutputType: string // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("options")>] Options: Google.Protobuf.MethodOptions option // (4)
+    /// <summary>Identifies if client streams multiple client messages</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("clientStreaming")>] ClientStreaming: bool // (5)
+    /// <summary>Identifies if server streams multiple server messages</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("serverStreaming")>] ServerStreaming: bool // (6)
     }
     with
     static member empty = _MethodDescriptorProtoProto.Empty
@@ -1016,11 +1330,14 @@ type MethodDescriptorProto = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FileOptions =
 
+    /// <summary>Generated classes can be optimized for speed or code size.</summary>
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<OptimizeMode>>)>]
     type OptimizeMode =
-    | Unspecified = 0
-    | Speed = 1
-    | CodeSize = 2
-    | LiteRuntime = 3
+    | [<FsGrpc.Protobuf.ProtobufName("UNSPECIFIED")>] Unspecified = 0
+    | [<FsGrpc.Protobuf.ProtobufName("SPEED")>] Speed = 1
+    /// <summary>etc.</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("CODE_SIZE")>] CodeSize = 2
+    | [<FsGrpc.Protobuf.ProtobufName("LITE_RUNTIME")>] LiteRuntime = 3
 
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
@@ -1045,7 +1362,7 @@ module FileOptions =
             val mutable PhpNamespace: string // (41)
             val mutable PhpMetadataNamespace: string // (44)
             val mutable RubyPackage: string // (45)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1098,27 +1415,27 @@ module FileOptions =
 
 let private _FileOptionsProto : ProtoDef<FileOptions> =
     // Field Definitions
-    let JavaPackage = FieldCodec.Primitive ValueCodec.String 1
-    let JavaOuterClassname = FieldCodec.Primitive ValueCodec.String 8
-    let JavaMultipleFiles = FieldCodec.Primitive ValueCodec.Bool 10
-    let JavaGenerateEqualsAndHash = FieldCodec.Primitive ValueCodec.Bool 20
-    let JavaStringCheckUtf8 = FieldCodec.Primitive ValueCodec.Bool 27
-    let OptimizeFor = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FileOptions.OptimizeMode> 9
-    let GoPackage = FieldCodec.Primitive ValueCodec.String 11
-    let CcGenericServices = FieldCodec.Primitive ValueCodec.Bool 16
-    let JavaGenericServices = FieldCodec.Primitive ValueCodec.Bool 17
-    let PyGenericServices = FieldCodec.Primitive ValueCodec.Bool 18
-    let PhpGenericServices = FieldCodec.Primitive ValueCodec.Bool 42
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 23
-    let CcEnableArenas = FieldCodec.Primitive ValueCodec.Bool 31
-    let ObjcClassPrefix = FieldCodec.Primitive ValueCodec.String 36
-    let CsharpNamespace = FieldCodec.Primitive ValueCodec.String 37
-    let SwiftPrefix = FieldCodec.Primitive ValueCodec.String 39
-    let PhpClassPrefix = FieldCodec.Primitive ValueCodec.String 40
-    let PhpNamespace = FieldCodec.Primitive ValueCodec.String 41
-    let PhpMetadataNamespace = FieldCodec.Primitive ValueCodec.String 44
-    let RubyPackage = FieldCodec.Primitive ValueCodec.String 45
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let JavaPackage = FieldCodec.Primitive ValueCodec.String (1, "javaPackage")
+    let JavaOuterClassname = FieldCodec.Primitive ValueCodec.String (8, "javaOuterClassname")
+    let JavaMultipleFiles = FieldCodec.Primitive ValueCodec.Bool (10, "javaMultipleFiles")
+    let JavaGenerateEqualsAndHash = FieldCodec.Primitive ValueCodec.Bool (20, "javaGenerateEqualsAndHash")
+    let JavaStringCheckUtf8 = FieldCodec.Primitive ValueCodec.Bool (27, "javaStringCheckUtf8")
+    let OptimizeFor = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FileOptions.OptimizeMode> (9, "optimizeFor")
+    let GoPackage = FieldCodec.Primitive ValueCodec.String (11, "goPackage")
+    let CcGenericServices = FieldCodec.Primitive ValueCodec.Bool (16, "ccGenericServices")
+    let JavaGenericServices = FieldCodec.Primitive ValueCodec.Bool (17, "javaGenericServices")
+    let PyGenericServices = FieldCodec.Primitive ValueCodec.Bool (18, "pyGenericServices")
+    let PhpGenericServices = FieldCodec.Primitive ValueCodec.Bool (42, "phpGenericServices")
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (23, "deprecated")
+    let CcEnableArenas = FieldCodec.Primitive ValueCodec.Bool (31, "ccEnableArenas")
+    let ObjcClassPrefix = FieldCodec.Primitive ValueCodec.String (36, "objcClassPrefix")
+    let CsharpNamespace = FieldCodec.Primitive ValueCodec.String (37, "csharpNamespace")
+    let SwiftPrefix = FieldCodec.Primitive ValueCodec.String (39, "swiftPrefix")
+    let PhpClassPrefix = FieldCodec.Primitive ValueCodec.String (40, "phpClassPrefix")
+    let PhpNamespace = FieldCodec.Primitive ValueCodec.String (41, "phpNamespace")
+    let PhpMetadataNamespace = FieldCodec.Primitive ValueCodec.String (44, "phpMetadataNamespace")
+    let RubyPackage = FieldCodec.Primitive ValueCodec.String (45, "rubyPackage")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<FileOptions>
         Name = "FileOptions"
@@ -1196,30 +1513,169 @@ let private _FileOptionsProto : ProtoDef<FileOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeJavaPackage = JavaPackage.WriteJsonField o
+            let writeJavaOuterClassname = JavaOuterClassname.WriteJsonField o
+            let writeJavaMultipleFiles = JavaMultipleFiles.WriteJsonField o
+            let writeJavaGenerateEqualsAndHash = JavaGenerateEqualsAndHash.WriteJsonField o
+            let writeJavaStringCheckUtf8 = JavaStringCheckUtf8.WriteJsonField o
+            let writeOptimizeFor = OptimizeFor.WriteJsonField o
+            let writeGoPackage = GoPackage.WriteJsonField o
+            let writeCcGenericServices = CcGenericServices.WriteJsonField o
+            let writeJavaGenericServices = JavaGenericServices.WriteJsonField o
+            let writePyGenericServices = PyGenericServices.WriteJsonField o
+            let writePhpGenericServices = PhpGenericServices.WriteJsonField o
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeCcEnableArenas = CcEnableArenas.WriteJsonField o
+            let writeObjcClassPrefix = ObjcClassPrefix.WriteJsonField o
+            let writeCsharpNamespace = CsharpNamespace.WriteJsonField o
+            let writeSwiftPrefix = SwiftPrefix.WriteJsonField o
+            let writePhpClassPrefix = PhpClassPrefix.WriteJsonField o
+            let writePhpNamespace = PhpNamespace.WriteJsonField o
+            let writePhpMetadataNamespace = PhpMetadataNamespace.WriteJsonField o
+            let writeRubyPackage = RubyPackage.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: FileOptions) =
+                writeJavaPackage w m.JavaPackage
+                writeJavaOuterClassname w m.JavaOuterClassname
+                writeJavaMultipleFiles w m.JavaMultipleFiles
+                writeJavaGenerateEqualsAndHash w m.JavaGenerateEqualsAndHash
+                writeJavaStringCheckUtf8 w m.JavaStringCheckUtf8
+                writeOptimizeFor w m.OptimizeFor
+                writeGoPackage w m.GoPackage
+                writeCcGenericServices w m.CcGenericServices
+                writeJavaGenericServices w m.JavaGenericServices
+                writePyGenericServices w m.PyGenericServices
+                writePhpGenericServices w m.PhpGenericServices
+                writeDeprecated w m.Deprecated
+                writeCcEnableArenas w m.CcEnableArenas
+                writeObjcClassPrefix w m.ObjcClassPrefix
+                writeCsharpNamespace w m.CsharpNamespace
+                writeSwiftPrefix w m.SwiftPrefix
+                writePhpClassPrefix w m.PhpClassPrefix
+                writePhpNamespace w m.PhpNamespace
+                writePhpMetadataNamespace w m.PhpMetadataNamespace
+                writeRubyPackage w m.RubyPackage
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type FileOptions = {
     // Field Declarations
-    JavaPackage: string // (1)
-    JavaOuterClassname: string // (8)
-    JavaMultipleFiles: bool // (10)
-    JavaGenerateEqualsAndHash: bool // (20)
-    JavaStringCheckUtf8: bool // (27)
-    OptimizeFor: Google.Protobuf.FileOptions.OptimizeMode // (9)
-    GoPackage: string // (11)
-    CcGenericServices: bool // (16)
-    JavaGenericServices: bool // (17)
-    PyGenericServices: bool // (18)
-    PhpGenericServices: bool // (42)
-    Deprecated: bool // (23)
-    CcEnableArenas: bool // (31)
-    ObjcClassPrefix: string // (36)
-    CsharpNamespace: string // (37)
-    SwiftPrefix: string // (39)
-    PhpClassPrefix: string // (40)
-    PhpNamespace: string // (41)
-    PhpMetadataNamespace: string // (44)
-    RubyPackage: string // (45)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// Sets the Java package where classes generated from this .proto will be
+    /// placed.  By default, the proto package is used, but this is often
+    /// inappropriate because proto packages do not normally start with backwards
+    /// domain names.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("javaPackage")>] JavaPackage: string // (1)
+    /// <summary>
+    /// If set, all the classes from the .proto file are wrapped in a single
+    /// outer class with the given name.  This applies to both Proto1
+    /// (equivalent to the old "--one_java_file" option) and Proto2 (where
+    /// a .proto always translates to a single class, but you may want to
+    /// explicitly choose the class name).
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("javaOuterClassname")>] JavaOuterClassname: string // (8)
+    /// <summary>
+    /// If set true, then the Java code generator will generate a separate .java
+    /// file for each top-level message, enum, and service defined in the .proto
+    /// file.  Thus, these types will *not* be nested inside the outer class
+    /// named by java_outer_classname.  However, the outer class will still be
+    /// generated to contain the file's getDescriptor() method as well as any
+    /// top-level extensions defined in the file.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("javaMultipleFiles")>] JavaMultipleFiles: bool // (10)
+    /// <summary>This option does nothing.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("javaGenerateEqualsAndHash")>] JavaGenerateEqualsAndHash: bool // (20)
+    /// <summary>
+    /// If set true, then the Java2 code generator will generate code that
+    /// throws an exception whenever an attempt is made to assign a non-UTF-8
+    /// byte sequence to a string field.
+    /// Message reflection will do the same.
+    /// However, an extension field still accepts non-UTF-8 byte sequences.
+    /// This option has no effect on when used with the lite runtime.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("javaStringCheckUtf8")>] JavaStringCheckUtf8: bool // (27)
+    [<System.Text.Json.Serialization.JsonPropertyName("optimizeFor")>] OptimizeFor: Google.Protobuf.FileOptions.OptimizeMode // (9)
+    /// <summary>
+    /// Sets the Go package where structs generated from this .proto will be
+    /// placed. If omitted, the Go package will be derived from the following:
+    ///   - The basename of the package import path, if provided.
+    ///   - Otherwise, the package statement in the .proto file, if present.
+    ///   - Otherwise, the basename of the .proto file, without extension.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("goPackage")>] GoPackage: string // (11)
+    /// <summary>
+    /// Should generic services be generated in each language?  "Generic" services
+    /// are not specific to any particular RPC system.  They are generated by the
+    /// main code generators in each language (without additional plugins).
+    /// Generic services were the only kind of service generation supported by
+    /// early versions of google.protobuf.
+    /// 
+    /// Generic services are now considered deprecated in favor of using plugins
+    /// that generate code specific to your particular RPC system.  Therefore,
+    /// these default to false.  Old code which depends on generic services should
+    /// explicitly set them to true.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("ccGenericServices")>] CcGenericServices: bool // (16)
+    [<System.Text.Json.Serialization.JsonPropertyName("javaGenericServices")>] JavaGenericServices: bool // (17)
+    [<System.Text.Json.Serialization.JsonPropertyName("pyGenericServices")>] PyGenericServices: bool // (18)
+    [<System.Text.Json.Serialization.JsonPropertyName("phpGenericServices")>] PhpGenericServices: bool // (42)
+    /// <summary>
+    /// Is this file deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for everything in the file, or it will be completely ignored; in the very
+    /// least, this is a formalization for deprecating files.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (23)
+    /// <summary>
+    /// Enables the use of arenas for the proto messages in this file. This applies
+    /// only to generated classes for C++.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("ccEnableArenas")>] CcEnableArenas: bool // (31)
+    /// <summary>
+    /// Sets the objective c class prefix which is prepended to all objective c
+    /// generated classes from this .proto. There is no default.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("objcClassPrefix")>] ObjcClassPrefix: string // (36)
+    /// <summary>Namespace for generated classes; defaults to the package.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("csharpNamespace")>] CsharpNamespace: string // (37)
+    /// <summary>
+    /// By default Swift generators will take the proto package and CamelCase it
+    /// replacing '.' with underscore and use that to prefix the types/symbols
+    /// defined. When this options is provided, they will use this value instead
+    /// to prefix the types/symbols defined.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("swiftPrefix")>] SwiftPrefix: string // (39)
+    /// <summary>
+    /// Sets the php class prefix which is prepended to all php generated classes
+    /// from this .proto. Default is empty.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("phpClassPrefix")>] PhpClassPrefix: string // (40)
+    /// <summary>
+    /// Use this option to change the namespace of php generated classes. Default
+    /// is empty. When this option is empty, the package name will be used for
+    /// determining the namespace.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("phpNamespace")>] PhpNamespace: string // (41)
+    /// <summary>
+    /// Use this option to change the namespace of php generated metadata classes.
+    /// Default is empty. When this option is empty, the proto file name will be
+    /// used for determining the namespace.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("phpMetadataNamespace")>] PhpMetadataNamespace: string // (44)
+    /// <summary>
+    /// Use this option to change the package of ruby generated classes. Default
+    /// is empty. When this option is not set, the package name will be used for
+    /// determining the ruby package.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("rubyPackage")>] RubyPackage: string // (45)
+    /// <summary>
+    /// The parser stores options it doesn't recognize here.
+    /// See the documentation for the "Options" section above.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _FileOptionsProto.Empty
@@ -1235,7 +1691,7 @@ module MessageOptions =
             val mutable NoStandardDescriptorAccessor: bool // (2)
             val mutable Deprecated: bool // (3)
             val mutable MapEntry: bool // (7)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1256,11 +1712,11 @@ module MessageOptions =
 
 let private _MessageOptionsProto : ProtoDef<MessageOptions> =
     // Field Definitions
-    let MessageSetWireFormat = FieldCodec.Primitive ValueCodec.Bool 1
-    let NoStandardDescriptorAccessor = FieldCodec.Primitive ValueCodec.Bool 2
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 3
-    let MapEntry = FieldCodec.Primitive ValueCodec.Bool 7
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let MessageSetWireFormat = FieldCodec.Primitive ValueCodec.Bool (1, "messageSetWireFormat")
+    let NoStandardDescriptorAccessor = FieldCodec.Primitive ValueCodec.Bool (2, "noStandardDescriptorAccessor")
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (3, "deprecated")
+    let MapEntry = FieldCodec.Primitive ValueCodec.Bool (7, "mapEntry")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<MessageOptions>
         Name = "MessageOptions"
@@ -1290,14 +1746,83 @@ let private _MessageOptionsProto : ProtoDef<MessageOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeMessageSetWireFormat = MessageSetWireFormat.WriteJsonField o
+            let writeNoStandardDescriptorAccessor = NoStandardDescriptorAccessor.WriteJsonField o
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeMapEntry = MapEntry.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: MessageOptions) =
+                writeMessageSetWireFormat w m.MessageSetWireFormat
+                writeNoStandardDescriptorAccessor w m.NoStandardDescriptorAccessor
+                writeDeprecated w m.Deprecated
+                writeMapEntry w m.MapEntry
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type MessageOptions = {
     // Field Declarations
-    MessageSetWireFormat: bool // (1)
-    NoStandardDescriptorAccessor: bool // (2)
-    Deprecated: bool // (3)
-    MapEntry: bool // (7)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// Set true to use the old proto1 MessageSet wire format for extensions.
+    /// This is provided for backwards-compatibility with the MessageSet wire
+    /// format.  You should not use this for any other reason:  It's less
+    /// efficient, has fewer features, and is more complicated.
+    /// 
+    /// The message must be defined exactly as follows:
+    ///   message Foo {
+    ///     option message_set_wire_format = true;
+    ///     extensions 4 to max;
+    ///   }
+    /// Note that the message cannot have any defined fields; MessageSets only
+    /// have extensions.
+    /// 
+    /// All extensions of your type must be singular messages; e.g. they cannot
+    /// be int32s, enums, or repeated messages.
+    /// 
+    /// Because this is an option, the above two restrictions are not enforced by
+    /// the protocol compiler.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("messageSetWireFormat")>] MessageSetWireFormat: bool // (1)
+    /// <summary>
+    /// Disables the generation of the standard "descriptor()" accessor, which can
+    /// conflict with a field of the same name.  This is meant to make migration
+    /// from proto1 easier; new code should avoid fields named "descriptor".
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("noStandardDescriptorAccessor")>] NoStandardDescriptorAccessor: bool // (2)
+    /// <summary>
+    /// Is this message deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for the message, or it will be completely ignored; in the very least,
+    /// this is a formalization for deprecating messages.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (3)
+    /// <summary>
+    /// Whether the message is an automatically generated map entry type for the
+    /// maps field.
+    /// 
+    /// For maps fields:
+    ///     map<KeyType, ValueType> map_field = 1;
+    /// The parsed descriptor looks like:
+    ///     message MapFieldEntry {
+    ///         option map_entry = true;
+    ///         KeyType key = 1;
+    ///         ValueType value = 2;
+    ///     }
+    ///     repeated MapFieldEntry map_field = 1;
+    /// 
+    /// Implementations may choose not to generate the map_entry=true message, but
+    /// use a native map in the target language to hold the keys and values.
+    /// The reflection APIs in such implementations still need to work as
+    /// if the field is a repeated message field.
+    /// 
+    /// NOTE: Do not set the option in .proto files. Always use the maps syntax
+    /// instead. The option should only be implicitly set by the proto compiler
+    /// parser.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("mapEntry")>] MapEntry: bool // (7)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _MessageOptionsProto.Empty
@@ -1306,15 +1831,21 @@ type MessageOptions = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module FieldOptions =
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<CType>>)>]
     type CType =
-    | String = 0
-    | Cord = 1
-    | StringPiece = 2
+    /// <summary>Default mode.</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("STRING")>] String = 0
+    | [<FsGrpc.Protobuf.ProtobufName("CORD")>] Cord = 1
+    | [<FsGrpc.Protobuf.ProtobufName("STRING_PIECE")>] StringPiece = 2
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<JSType>>)>]
     type JSType =
-    | JsNormal = 0
-    | JsString = 1
-    | JsNumber = 2
+    /// <summary>Use the default type.</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("JS_NORMAL")>] JsNormal = 0
+    /// <summary>Use JavaScript strings.</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("JS_STRING")>] JsString = 1
+    /// <summary>Use JavaScript numbers.</summary>
+    | [<FsGrpc.Protobuf.ProtobufName("JS_NUMBER")>] JsNumber = 2
 
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
@@ -1325,7 +1856,7 @@ module FieldOptions =
             val mutable Lazy: bool // (5)
             val mutable Deprecated: bool // (3)
             val mutable Weak: bool // (10)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1350,13 +1881,13 @@ module FieldOptions =
 
 let private _FieldOptionsProto : ProtoDef<FieldOptions> =
     // Field Definitions
-    let Ctype = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldOptions.CType> 1
-    let Packed = FieldCodec.Primitive ValueCodec.Bool 2
-    let Jstype = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldOptions.JSType> 6
-    let Lazy = FieldCodec.Primitive ValueCodec.Bool 5
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 3
-    let Weak = FieldCodec.Primitive ValueCodec.Bool 10
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let Ctype = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldOptions.CType> (1, "ctype")
+    let Packed = FieldCodec.Primitive ValueCodec.Bool (2, "packed")
+    let Jstype = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.FieldOptions.JSType> (6, "jstype")
+    let Lazy = FieldCodec.Primitive ValueCodec.Bool (5, "lazy")
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (3, "deprecated")
+    let Weak = FieldCodec.Primitive ValueCodec.Bool (10, "weak")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<FieldOptions>
         Name = "FieldOptions"
@@ -1392,16 +1923,98 @@ let private _FieldOptionsProto : ProtoDef<FieldOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeCtype = Ctype.WriteJsonField o
+            let writePacked = Packed.WriteJsonField o
+            let writeJstype = Jstype.WriteJsonField o
+            let writeLazy = Lazy.WriteJsonField o
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeWeak = Weak.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: FieldOptions) =
+                writeCtype w m.Ctype
+                writePacked w m.Packed
+                writeJstype w m.Jstype
+                writeLazy w m.Lazy
+                writeDeprecated w m.Deprecated
+                writeWeak w m.Weak
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type FieldOptions = {
     // Field Declarations
-    Ctype: Google.Protobuf.FieldOptions.CType // (1)
-    Packed: bool // (2)
-    Jstype: Google.Protobuf.FieldOptions.JSType // (6)
-    Lazy: bool // (5)
-    Deprecated: bool // (3)
-    Weak: bool // (10)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// The ctype option instructs the C++ code generator to use a different
+    /// representation of the field than it normally would.  See the specific
+    /// options below.  This option is not yet implemented in the open source
+    /// release -- sorry, we'll try to include it in a future version!
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("ctype")>] Ctype: Google.Protobuf.FieldOptions.CType // (1)
+    /// <summary>
+    /// The packed option can be enabled for repeated primitive fields to enable
+    /// a more efficient representation on the wire. Rather than repeatedly
+    /// writing the tag and type for each element, the entire array is encoded as
+    /// a single length-delimited blob. In proto3, only explicit setting it to
+    /// false will avoid using packed encoding.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("packed")>] Packed: bool // (2)
+    /// <summary>
+    /// The jstype option determines the JavaScript type used for values of the
+    /// field.  The option is permitted only for 64 bit integral and fixed types
+    /// (int64, uint64, sint64, fixed64, sfixed64).  A field with jstype JS_STRING
+    /// is represented as JavaScript string, which avoids loss of precision that
+    /// can happen when a large value is converted to a floating point JavaScript.
+    /// Specifying JS_NUMBER for the jstype causes the generated JavaScript code to
+    /// use the JavaScript "number" type.  The behavior of the default option
+    /// JS_NORMAL is implementation dependent.
+    /// 
+    /// This option is an enum to permit additional types to be added, e.g.
+    /// goog.math.Integer.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("jstype")>] Jstype: Google.Protobuf.FieldOptions.JSType // (6)
+    /// <summary>
+    /// Should this field be parsed lazily?  Lazy applies only to message-type
+    /// fields.  It means that when the outer message is initially parsed, the
+    /// inner message's contents will not be parsed but instead stored in encoded
+    /// form.  The inner message will actually be parsed when it is first accessed.
+    /// 
+    /// This is only a hint.  Implementations are free to choose whether to use
+    /// eager or lazy parsing regardless of the value of this option.  However,
+    /// setting this option true suggests that the protocol author believes that
+    /// using lazy parsing on this field is worth the additional bookkeeping
+    /// overhead typically needed to implement it.
+    /// 
+    /// This option does not affect the public interface of any generated code;
+    /// all method signatures remain the same.  Furthermore, thread-safety of the
+    /// interface is not affected by this option; const methods remain safe to
+    /// call from multiple threads concurrently, while non-const methods continue
+    /// to require exclusive access.
+    /// 
+    /// 
+    /// Note that implementations may choose not to check required fields within
+    /// a lazy sub-message.  That is, calling IsInitialized() on the outer message
+    /// may return true even if the inner message has missing required fields.
+    /// This is necessary because otherwise the inner message would have to be
+    /// parsed in order to perform the check, defeating the purpose of lazy
+    /// parsing.  An implementation which chooses not to check required fields
+    /// must be consistent about it.  That is, for any particular sub-message, the
+    /// implementation must either *always* check its required fields, or *never*
+    /// check its required fields, regardless of whether or not the message has
+    /// been parsed.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("lazy")>] Lazy: bool // (5)
+    /// <summary>
+    /// Is this field deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for accessors, or it will be completely ignored; in the very least, this
+    /// is a formalization for deprecating fields.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (3)
+    /// <summary>For Google-internal migration only. Do not use.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("weak")>] Weak: bool // (10)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _FieldOptionsProto.Empty
@@ -1413,7 +2026,7 @@ module OneofOptions =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1426,7 +2039,7 @@ module OneofOptions =
 
 let private _OneofOptionsProto : ProtoDef<OneofOptions> =
     // Field Definitions
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<OneofOptions>
         Name = "OneofOptions"
@@ -1444,10 +2057,17 @@ let private _OneofOptionsProto : ProtoDef<OneofOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: OneofOptions) =
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type OneofOptions = {
     // Field Declarations
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _OneofOptionsProto.Empty
@@ -1461,7 +2081,7 @@ module EnumOptions =
         struct
             val mutable AllowAlias: bool // (2)
             val mutable Deprecated: bool // (3)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1478,9 +2098,9 @@ module EnumOptions =
 
 let private _EnumOptionsProto : ProtoDef<EnumOptions> =
     // Field Definitions
-    let AllowAlias = FieldCodec.Primitive ValueCodec.Bool 2
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 3
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let AllowAlias = FieldCodec.Primitive ValueCodec.Bool (2, "allowAlias")
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (3, "deprecated")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<EnumOptions>
         Name = "EnumOptions"
@@ -1504,12 +2124,33 @@ let private _EnumOptionsProto : ProtoDef<EnumOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeAllowAlias = AllowAlias.WriteJsonField o
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: EnumOptions) =
+                writeAllowAlias w m.AllowAlias
+                writeDeprecated w m.Deprecated
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type EnumOptions = {
     // Field Declarations
-    AllowAlias: bool // (2)
-    Deprecated: bool // (3)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// Set this option to true to allow mapping different tag names to the same
+    /// value.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("allowAlias")>] AllowAlias: bool // (2)
+    /// <summary>
+    /// Is this enum deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for the enum, or it will be completely ignored; in the very least, this
+    /// is a formalization for deprecating enums.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (3)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _EnumOptionsProto.Empty
@@ -1522,7 +2163,7 @@ module EnumValueOptions =
     type Builder =
         struct
             val mutable Deprecated: bool // (1)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1537,8 +2178,8 @@ module EnumValueOptions =
 
 let private _EnumValueOptionsProto : ProtoDef<EnumValueOptions> =
     // Field Definitions
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 1
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (1, "deprecated")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<EnumValueOptions>
         Name = "EnumValueOptions"
@@ -1559,11 +2200,26 @@ let private _EnumValueOptionsProto : ProtoDef<EnumValueOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: EnumValueOptions) =
+                writeDeprecated w m.Deprecated
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type EnumValueOptions = {
     // Field Declarations
-    Deprecated: bool // (1)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// Is this enum value deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for the enum value, or it will be completely ignored; in the very least,
+    /// this is a formalization for deprecating enum values.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (1)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _EnumValueOptionsProto.Empty
@@ -1576,7 +2232,7 @@ module ServiceOptions =
     type Builder =
         struct
             val mutable Deprecated: bool // (33)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1591,8 +2247,8 @@ module ServiceOptions =
 
 let private _ServiceOptionsProto : ProtoDef<ServiceOptions> =
     // Field Definitions
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 33
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (33, "deprecated")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<ServiceOptions>
         Name = "ServiceOptions"
@@ -1613,11 +2269,26 @@ let private _ServiceOptionsProto : ProtoDef<ServiceOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: ServiceOptions) =
+                writeDeprecated w m.Deprecated
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type ServiceOptions = {
     // Field Declarations
-    Deprecated: bool // (33)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// Is this service deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for the service, or it will be completely ignored; in the very least,
+    /// this is a formalization for deprecating services.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (33)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _ServiceOptionsProto.Empty
@@ -1626,17 +2297,23 @@ type ServiceOptions = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module MethodOptions =
 
+    /// <summary>
+    /// Is this method side-effect-free (or safe in HTTP parlance), or idempotent,
+    /// or neither? HTTP based RPC implementation may choose GET verb for safe
+    /// methods, and PUT verb for idempotent methods instead of the default POST.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<IdempotencyLevel>>)>]
     type IdempotencyLevel =
-    | IdempotencyUnknown = 0
-    | NoSideEffects = 1
-    | Idempotent = 2
+    | [<FsGrpc.Protobuf.ProtobufName("IDEMPOTENCY_UNKNOWN")>] IdempotencyUnknown = 0
+    | [<FsGrpc.Protobuf.ProtobufName("NO_SIDE_EFFECTS")>] NoSideEffects = 1
+    | [<FsGrpc.Protobuf.ProtobufName("IDEMPOTENT")>] Idempotent = 2
 
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
             val mutable Deprecated: bool // (33)
             val mutable IdempotencyLevel: Google.Protobuf.MethodOptions.IdempotencyLevel // (34)
-            val mutable UninterpretedOptions: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
+            val mutable UninterpretedOptions: RepeatedBuilder<Google.Protobuf.UninterpretedOption> // (999)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1653,9 +2330,9 @@ module MethodOptions =
 
 let private _MethodOptionsProto : ProtoDef<MethodOptions> =
     // Field Definitions
-    let Deprecated = FieldCodec.Primitive ValueCodec.Bool 33
-    let IdempotencyLevel = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.MethodOptions.IdempotencyLevel> 34
-    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> 999
+    let Deprecated = FieldCodec.Primitive ValueCodec.Bool (33, "deprecated")
+    let IdempotencyLevel = FieldCodec.Primitive ValueCodec.Enum<Google.Protobuf.MethodOptions.IdempotencyLevel> (34, "idempotencyLevel")
+    let UninterpretedOptions = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption> (999, "uninterpretedOptions")
     // Proto Definition Implementation
     { // ProtoDef<MethodOptions>
         Name = "MethodOptions"
@@ -1679,12 +2356,29 @@ let private _MethodOptionsProto : ProtoDef<MethodOptions> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeDeprecated = Deprecated.WriteJsonField o
+            let writeIdempotencyLevel = IdempotencyLevel.WriteJsonField o
+            let writeUninterpretedOptions = UninterpretedOptions.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: MethodOptions) =
+                writeDeprecated w m.Deprecated
+                writeIdempotencyLevel w m.IdempotencyLevel
+                writeUninterpretedOptions w m.UninterpretedOptions
+            encode
         }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type MethodOptions = {
     // Field Declarations
-    Deprecated: bool // (33)
-    IdempotencyLevel: Google.Protobuf.MethodOptions.IdempotencyLevel // (34)
-    UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
+    /// <summary>
+    /// Is this method deprecated?
+    /// Depending on the target platform, this can emit Deprecated annotations
+    /// for the method, or it will be completely ignored; in the very least,
+    /// this is a formalization for deprecating methods.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("deprecated")>] Deprecated: bool // (33)
+    [<System.Text.Json.Serialization.JsonPropertyName("idempotencyLevel")>] IdempotencyLevel: Google.Protobuf.MethodOptions.IdempotencyLevel // (34)
+    /// <summary>The parser stores options it doesn't recognize here. See above.</summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("uninterpretedOptions")>] UninterpretedOptions: Google.Protobuf.UninterpretedOption seq // (999)
     }
     with
     static member empty = _MethodOptionsProto.Empty
@@ -1693,15 +2387,18 @@ type MethodOptions = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module UninterpretedOption =
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.OneofConverter<ValueCase>>)>]
+    [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
+    [<StructuralEquality;NoComparison>]
     [<RequireQualifiedAccess>]
     type ValueCase =
     | None
-    | IdentifierValue of string
-    | PositiveIntValue of uint64
-    | NegativeIntValue of int64
-    | DoubleValue of double
-    | StringValue of Google.Protobuf.ByteString
-    | AggregateValue of string
+    | [<System.Text.Json.Serialization.JsonPropertyName("identifierValue")>] IdentifierValue of string
+    | [<System.Text.Json.Serialization.JsonPropertyName("positiveIntValue")>] PositiveIntValue of uint64
+    | [<System.Text.Json.Serialization.JsonPropertyName("negativeIntValue")>] NegativeIntValue of int64
+    | [<System.Text.Json.Serialization.JsonPropertyName("doubleValue")>] DoubleValue of double
+    | [<System.Text.Json.Serialization.JsonPropertyName("stringValue")>] StringValue of FsGrpc.Bytes
+    | [<System.Text.Json.Serialization.JsonPropertyName("aggregateValue")>] AggregateValue of string
 
     [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
     module NamePart =
@@ -1725,8 +2422,8 @@ module UninterpretedOption =
 
     let private _NamePartProto : ProtoDef<NamePart> =
         // Field Definitions
-        let NamePart = FieldCodec.Primitive ValueCodec.String 1
-        let IsExtension = FieldCodec.Primitive ValueCodec.Bool 2
+        let NamePart = FieldCodec.Primitive ValueCodec.String (1, "namePart")
+        let IsExtension = FieldCodec.Primitive ValueCodec.Bool (2, "isExtension")
         // Proto Definition Implementation
         { // ProtoDef<NamePart>
             Name = "NamePart"
@@ -1747,11 +2444,26 @@ module UninterpretedOption =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
+            EncodeJson = fun (o: JsonOptions) ->
+                let writeNamePart = NamePart.WriteJsonField o
+                let writeIsExtension = IsExtension.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: NamePart) =
+                    writeNamePart w m.NamePart
+                    writeIsExtension w m.IsExtension
+                encode
             }
+    /// <summary>
+    /// The name of the uninterpreted option.  Each string represents a segment in
+    /// a dot-separated name.  is_extension is true iff a segment represents an
+    /// extension (denoted with parentheses in options specs in .proto files).
+    /// E.g.,{ ["foo", false], ["bar.baz", true], ["qux", false] } represents
+    /// "foo.(bar.baz).qux".
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
     type NamePart = {
         // Field Declarations
-        NamePart: string // (1)
-        IsExtension: bool // (2)
+        [<System.Text.Json.Serialization.JsonPropertyName("namePart")>] NamePart: string // (1)
+        [<System.Text.Json.Serialization.JsonPropertyName("isExtension")>] IsExtension: bool // (2)
         }
         with
         static member empty = _NamePartProto.Empty
@@ -1760,7 +2472,7 @@ module UninterpretedOption =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Names: FsGrpc.RepeatedBuilder<Google.Protobuf.UninterpretedOption.NamePart> // (2)
+            val mutable Names: RepeatedBuilder<Google.Protobuf.UninterpretedOption.NamePart> // (2)
             val mutable Value: OptionBuilder<Google.Protobuf.UninterpretedOption.ValueCase>
         end
         with
@@ -1781,13 +2493,14 @@ module UninterpretedOption =
 
 let private _UninterpretedOptionProto : ProtoDef<UninterpretedOption> =
     // Field Definitions
-    let Names = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption.NamePart> 2
-    let IdentifierValue = FieldCodec.Optional ValueCodec.String (* oneof value *) 3
-    let PositiveIntValue = FieldCodec.Optional ValueCodec.UInt64 (* oneof value *) 4
-    let NegativeIntValue = FieldCodec.Optional ValueCodec.Int64 (* oneof value *) 5
-    let DoubleValue = FieldCodec.Optional ValueCodec.Double (* oneof value *) 6
-    let StringValue = FieldCodec.Optional ValueCodec.Bytes (* oneof value *) 7
-    let AggregateValue = FieldCodec.Optional ValueCodec.String (* oneof value *) 8
+    let Names = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.UninterpretedOption.NamePart> (2, "names")
+    let Value = FieldCodec.Oneof "value"
+    let IdentifierValue = FieldCodec.OneofCase "value" ValueCodec.String (3, "identifierValue")
+    let PositiveIntValue = FieldCodec.OneofCase "value" ValueCodec.UInt64 (4, "positiveIntValue")
+    let NegativeIntValue = FieldCodec.OneofCase "value" ValueCodec.Int64 (5, "negativeIntValue")
+    let DoubleValue = FieldCodec.OneofCase "value" ValueCodec.Double (6, "doubleValue")
+    let StringValue = FieldCodec.OneofCase "value" ValueCodec.Bytes (7, "stringValue")
+    let AggregateValue = FieldCodec.OneofCase "value" ValueCodec.String (8, "aggregateValue")
     // Proto Definition Implementation
     { // ProtoDef<UninterpretedOption>
         Name = "UninterpretedOption"
@@ -1800,22 +2513,22 @@ let private _UninterpretedOptionProto : ProtoDef<UninterpretedOption> =
             + Names.CalcFieldSize m.Names
             + match m.Value with
                 | Google.Protobuf.UninterpretedOption.ValueCase.None -> 0
-                | Google.Protobuf.UninterpretedOption.ValueCase.IdentifierValue v -> IdentifierValue.CalcFieldSize (Some v)
-                | Google.Protobuf.UninterpretedOption.ValueCase.PositiveIntValue v -> PositiveIntValue.CalcFieldSize (Some v)
-                | Google.Protobuf.UninterpretedOption.ValueCase.NegativeIntValue v -> NegativeIntValue.CalcFieldSize (Some v)
-                | Google.Protobuf.UninterpretedOption.ValueCase.DoubleValue v -> DoubleValue.CalcFieldSize (Some v)
-                | Google.Protobuf.UninterpretedOption.ValueCase.StringValue v -> StringValue.CalcFieldSize (Some v)
-                | Google.Protobuf.UninterpretedOption.ValueCase.AggregateValue v -> AggregateValue.CalcFieldSize (Some v)
+                | Google.Protobuf.UninterpretedOption.ValueCase.IdentifierValue v -> IdentifierValue.CalcFieldSize v
+                | Google.Protobuf.UninterpretedOption.ValueCase.PositiveIntValue v -> PositiveIntValue.CalcFieldSize v
+                | Google.Protobuf.UninterpretedOption.ValueCase.NegativeIntValue v -> NegativeIntValue.CalcFieldSize v
+                | Google.Protobuf.UninterpretedOption.ValueCase.DoubleValue v -> DoubleValue.CalcFieldSize v
+                | Google.Protobuf.UninterpretedOption.ValueCase.StringValue v -> StringValue.CalcFieldSize v
+                | Google.Protobuf.UninterpretedOption.ValueCase.AggregateValue v -> AggregateValue.CalcFieldSize v
         Encode = fun (w: Google.Protobuf.CodedOutputStream) (m: UninterpretedOption) ->
             Names.WriteField w m.Names
             (match m.Value with
             | Google.Protobuf.UninterpretedOption.ValueCase.None -> ()
-            | Google.Protobuf.UninterpretedOption.ValueCase.IdentifierValue v -> IdentifierValue.WriteField w (Some v)
-            | Google.Protobuf.UninterpretedOption.ValueCase.PositiveIntValue v -> PositiveIntValue.WriteField w (Some v)
-            | Google.Protobuf.UninterpretedOption.ValueCase.NegativeIntValue v -> NegativeIntValue.WriteField w (Some v)
-            | Google.Protobuf.UninterpretedOption.ValueCase.DoubleValue v -> DoubleValue.WriteField w (Some v)
-            | Google.Protobuf.UninterpretedOption.ValueCase.StringValue v -> StringValue.WriteField w (Some v)
-            | Google.Protobuf.UninterpretedOption.ValueCase.AggregateValue v -> AggregateValue.WriteField w (Some v)
+            | Google.Protobuf.UninterpretedOption.ValueCase.IdentifierValue v -> IdentifierValue.WriteField w v
+            | Google.Protobuf.UninterpretedOption.ValueCase.PositiveIntValue v -> PositiveIntValue.WriteField w v
+            | Google.Protobuf.UninterpretedOption.ValueCase.NegativeIntValue v -> NegativeIntValue.WriteField w v
+            | Google.Protobuf.UninterpretedOption.ValueCase.DoubleValue v -> DoubleValue.WriteField w v
+            | Google.Protobuf.UninterpretedOption.ValueCase.StringValue v -> StringValue.WriteField w v
+            | Google.Protobuf.UninterpretedOption.ValueCase.AggregateValue v -> AggregateValue.WriteField w v
             )
         Decode = fun (r: Google.Protobuf.CodedInputStream) ->
             let mutable builder = new Google.Protobuf.UninterpretedOption.Builder()
@@ -1823,10 +2536,44 @@ let private _UninterpretedOptionProto : ProtoDef<UninterpretedOption> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeNames = Names.WriteJsonField o
+            let writeValueNone = Value.WriteJsonNoneCase o
+            let writeIdentifierValue = IdentifierValue.WriteJsonField o
+            let writePositiveIntValue = PositiveIntValue.WriteJsonField o
+            let writeNegativeIntValue = NegativeIntValue.WriteJsonField o
+            let writeDoubleValue = DoubleValue.WriteJsonField o
+            let writeStringValue = StringValue.WriteJsonField o
+            let writeAggregateValue = AggregateValue.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: UninterpretedOption) =
+                writeNames w m.Names
+                (match m.Value with
+                | Google.Protobuf.UninterpretedOption.ValueCase.None -> writeValueNone w
+                | Google.Protobuf.UninterpretedOption.ValueCase.IdentifierValue v -> writeIdentifierValue w v
+                | Google.Protobuf.UninterpretedOption.ValueCase.PositiveIntValue v -> writePositiveIntValue w v
+                | Google.Protobuf.UninterpretedOption.ValueCase.NegativeIntValue v -> writeNegativeIntValue w v
+                | Google.Protobuf.UninterpretedOption.ValueCase.DoubleValue v -> writeDoubleValue w v
+                | Google.Protobuf.UninterpretedOption.ValueCase.StringValue v -> writeStringValue w v
+                | Google.Protobuf.UninterpretedOption.ValueCase.AggregateValue v -> writeAggregateValue w v
+                )
+            encode
         }
+/// <summary>
+/// A message representing a option the parser does not recognize. This only
+/// appears in options protos created by the compiler::Parser class.
+/// DescriptorPool resolves these when building Descriptor objects. Therefore,
+/// options protos in descriptor objects (e.g. returned by Descriptor::options(),
+/// or produced by Descriptor::CopyTo()) will never have UninterpretedOptions
+/// in them.
+/// </summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type UninterpretedOption = {
     // Field Declarations
-    Names: Google.Protobuf.UninterpretedOption.NamePart seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("names")>] Names: Google.Protobuf.UninterpretedOption.NamePart seq // (2)
+    /// <summary>
+    /// The value of the uninterpreted option, in whatever type the tokenizer
+    /// identified it as during parsing. Exactly one of these should be set.
+    /// </summary>
     Value: Google.Protobuf.UninterpretedOption.ValueCase
     }
     with
@@ -1842,11 +2589,11 @@ module SourceCodeInfo =
         [<System.Runtime.CompilerServices.IsByRefLike>]
         type Builder =
             struct
-                val mutable Paths: FsGrpc.RepeatedBuilder<int> // (1)
-                val mutable Spans: FsGrpc.RepeatedBuilder<int> // (2)
+                val mutable Paths: RepeatedBuilder<int> // (1)
+                val mutable Spans: RepeatedBuilder<int> // (2)
                 val mutable LeadingComments: string // (3)
                 val mutable TrailingComments: string // (4)
-                val mutable LeadingDetachedComments: FsGrpc.RepeatedBuilder<string> // (6)
+                val mutable LeadingDetachedComments: RepeatedBuilder<string> // (6)
             end
             with
             member x.Put ((tag, reader): int * Reader) =
@@ -1867,11 +2614,11 @@ module SourceCodeInfo =
 
     let private _LocationProto : ProtoDef<Location> =
         // Field Definitions
-        let Paths = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) 1
-        let Spans = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) 2
-        let LeadingComments = FieldCodec.Primitive ValueCodec.String 3
-        let TrailingComments = FieldCodec.Primitive ValueCodec.String 4
-        let LeadingDetachedComments = FieldCodec.Repeated ValueCodec.String 6
+        let Paths = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) (1, "paths")
+        let Spans = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) (2, "spans")
+        let LeadingComments = FieldCodec.Primitive ValueCodec.String (3, "leadingComments")
+        let TrailingComments = FieldCodec.Primitive ValueCodec.String (4, "trailingComments")
+        let LeadingDetachedComments = FieldCodec.Repeated ValueCodec.String (6, "leadingDetachedComments")
         // Proto Definition Implementation
         { // ProtoDef<Location>
             Name = "Location"
@@ -1901,14 +2648,109 @@ module SourceCodeInfo =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
+            EncodeJson = fun (o: JsonOptions) ->
+                let writePaths = Paths.WriteJsonField o
+                let writeSpans = Spans.WriteJsonField o
+                let writeLeadingComments = LeadingComments.WriteJsonField o
+                let writeTrailingComments = TrailingComments.WriteJsonField o
+                let writeLeadingDetachedComments = LeadingDetachedComments.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: Location) =
+                    writePaths w m.Paths
+                    writeSpans w m.Spans
+                    writeLeadingComments w m.LeadingComments
+                    writeTrailingComments w m.TrailingComments
+                    writeLeadingDetachedComments w m.LeadingDetachedComments
+                encode
             }
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
     type Location = {
         // Field Declarations
-        Paths: int seq // (1)
-        Spans: int seq // (2)
-        LeadingComments: string // (3)
-        TrailingComments: string // (4)
-        LeadingDetachedComments: string seq // (6)
+        /// <summary>
+        /// Identifies which part of the FileDescriptorProto was defined at this
+        /// location.
+        /// 
+        /// Each element is a field number or an index.  They form a path from
+        /// the root FileDescriptorProto to the place where the definition.  For
+        /// example, this path:
+        ///   [ 4, 3, 2, 7, 1 ]
+        /// refers to:
+        ///   file.message_type(3)  // 4, 3
+        ///       .field(7)         // 2, 7
+        ///       .name()           // 1
+        /// This is because FileDescriptorProto.message_type has field number 4:
+        ///   repeated DescriptorProto message_type = 4;
+        /// and DescriptorProto.field has field number 2:
+        ///   repeated FieldDescriptorProto field = 2;
+        /// and FieldDescriptorProto.name has field number 1:
+        ///   optional string name = 1;
+        /// 
+        /// Thus, the above path gives the location of a field name.  If we removed
+        /// the last element:
+        ///   [ 4, 3, 2, 7 ]
+        /// this path refers to the whole field declaration (from the beginning
+        /// of the label to the terminating semicolon).
+        /// </summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("paths")>] Paths: int seq // (1)
+        /// <summary>
+        /// Always has exactly three or four elements: start line, start column,
+        /// end line (optional, otherwise assumed same as start line), end column.
+        /// These are packed into a single field for efficiency.  Note that line
+        /// and column numbers are zero-based -- typically you will want to add
+        /// 1 to each before displaying to a user.
+        /// </summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("spans")>] Spans: int seq // (2)
+        /// <summary>
+        /// If this SourceCodeInfo represents a complete declaration, these are any
+        /// comments appearing before and after the declaration which appear to be
+        /// attached to the declaration.
+        /// 
+        /// A series of line comments appearing on consecutive lines, with no other
+        /// tokens appearing on those lines, will be treated as a single comment.
+        /// 
+        /// leading_detached_comments will keep paragraphs of comments that appear
+        /// before (but not connected to) the current element. Each paragraph,
+        /// separated by empty lines, will be one comment element in the repeated
+        /// field.
+        /// 
+        /// Only the comment content is provided; comment markers (e.g. //) are
+        /// stripped out.  For block comments, leading whitespace and an asterisk
+        /// will be stripped from the beginning of each line other than the first.
+        /// Newlines are included in the output.
+        /// 
+        /// Examples:
+        /// 
+        ///   optional int32 foo = 1;  // Comment attached to foo.
+        ///   // Comment attached to bar.
+        ///   optional int32 bar = 2;
+        /// 
+        ///   optional string baz = 3;
+        ///   // Comment attached to baz.
+        ///   // Another line attached to baz.
+        /// 
+        ///   // Comment attached to qux.
+        ///   //
+        ///   // Another line attached to qux.
+        ///   optional double qux = 4;
+        /// 
+        ///   // Detached comment for corge. This is not leading or trailing comments
+        ///   // to qux or corge because there are blank lines separating it from
+        ///   // both.
+        /// 
+        ///   // Detached comment for corge paragraph 2.
+        /// 
+        ///   optional string corge = 5;
+        ///   /* Block comment attached
+        ///    * to corge.  Leading asterisks
+        ///    * will be removed. */
+        ///   /* Block comment attached to
+        ///    * grault. */
+        ///   optional int32 grault = 6;
+        /// 
+        ///   // ignored detached comments.
+        /// </summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("leadingComments")>] LeadingComments: string // (3)
+        [<System.Text.Json.Serialization.JsonPropertyName("trailingComments")>] TrailingComments: string // (4)
+        [<System.Text.Json.Serialization.JsonPropertyName("leadingDetachedComments")>] LeadingDetachedComments: string seq // (6)
         }
         with
         static member empty = _LocationProto.Empty
@@ -1917,7 +2759,7 @@ module SourceCodeInfo =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Location: FsGrpc.RepeatedBuilder<Google.Protobuf.SourceCodeInfo.Location> // (1)
+            val mutable Location: RepeatedBuilder<Google.Protobuf.SourceCodeInfo.Location> // (1)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -1930,7 +2772,7 @@ module SourceCodeInfo =
 
 let private _SourceCodeInfoProto : ProtoDef<SourceCodeInfo> =
     // Field Definitions
-    let Location = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.SourceCodeInfo.Location> 1
+    let Location = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.SourceCodeInfo.Location> (1, "location")
     // Proto Definition Implementation
     { // ProtoDef<SourceCodeInfo>
         Name = "SourceCodeInfo"
@@ -1948,10 +2790,65 @@ let private _SourceCodeInfoProto : ProtoDef<SourceCodeInfo> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeLocation = Location.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: SourceCodeInfo) =
+                writeLocation w m.Location
+            encode
         }
+/// <summary>
+/// Encapsulates information about the original source file from which a
+/// FileDescriptorProto was generated.
+/// </summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type SourceCodeInfo = {
     // Field Declarations
-    Location: Google.Protobuf.SourceCodeInfo.Location seq // (1)
+    /// <summary>
+    /// A Location identifies a piece of source code in a .proto file which
+    /// corresponds to a particular definition.  This information is intended
+    /// to be useful to IDEs, code indexers, documentation generators, and similar
+    /// tools.
+    /// 
+    /// For example, say we have a file like:
+    ///   message Foo {
+    ///     optional string foo = 1;
+    ///   }
+    /// Let's look at just the field definition:
+    ///   optional string foo = 1;
+    ///   ^       ^^     ^^  ^  ^^^
+    ///   a       bc     de  f  ghi
+    /// We have the following locations:
+    ///   span   path               represents
+    ///   [a,i)  [ 4, 0, 2, 0 ]     The whole field definition.
+    ///   [a,b)  [ 4, 0, 2, 0, 4 ]  The label (optional).
+    ///   [c,d)  [ 4, 0, 2, 0, 5 ]  The type (string).
+    ///   [e,f)  [ 4, 0, 2, 0, 1 ]  The name (foo).
+    ///   [g,h)  [ 4, 0, 2, 0, 3 ]  The number (1).
+    /// 
+    /// Notes:
+    /// - A location may refer to a repeated field itself (i.e. not to any
+    ///   particular index within it).  This is used whenever a set of elements are
+    ///   logically enclosed in a single code segment.  For example, an entire
+    ///   extend block (possibly containing multiple extension definitions) will
+    ///   have an outer location whose path refers to the "extensions" repeated
+    ///   field without an index.
+    /// - Multiple locations may have the same path.  This happens when a single
+    ///   logical declaration is spread out across multiple places.  The most
+    ///   obvious example is the "extend" block again -- there may be multiple
+    ///   extend blocks in the same scope, each of which will have the same path.
+    /// - A location's span is not always a subset of its parent's span.  For
+    ///   example, the "extendee" of an extension declaration appears at the
+    ///   beginning of the "extend" block and is shared by all extensions within
+    ///   the block.
+    /// - Just because a location's span is a subset of some other location's span
+    ///   does not mean that it is a descendant.  For example, a "group" defines
+    ///   both a type and a field in a single declaration.  Thus, the locations
+    ///   corresponding to the type and field and their components will overlap.
+    /// - Code which tries to interpret locations should probably be designed to
+    ///   ignore those that it doesn't understand, as more types of locations could
+    ///   be recorded in the future.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("location")>] Location: Google.Protobuf.SourceCodeInfo.Location seq // (1)
     }
     with
     static member empty = _SourceCodeInfoProto.Empty
@@ -1966,7 +2863,7 @@ module GeneratedCodeInfo =
         [<System.Runtime.CompilerServices.IsByRefLike>]
         type Builder =
             struct
-                val mutable Paths: FsGrpc.RepeatedBuilder<int> // (1)
+                val mutable Paths: RepeatedBuilder<int> // (1)
                 val mutable SourceFile: string // (2)
                 val mutable Begin: int // (3)
                 val mutable End: int // (4)
@@ -1988,10 +2885,10 @@ module GeneratedCodeInfo =
 
     let private _AnnotationProto : ProtoDef<Annotation> =
         // Field Definitions
-        let Paths = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) 1
-        let SourceFile = FieldCodec.Primitive ValueCodec.String 2
-        let Begin = FieldCodec.Primitive ValueCodec.Int32 3
-        let End = FieldCodec.Primitive ValueCodec.Int32 4
+        let Paths = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) (1, "paths")
+        let SourceFile = FieldCodec.Primitive ValueCodec.String (2, "sourceFile")
+        let Begin = FieldCodec.Primitive ValueCodec.Int32 (3, "begin")
+        let End = FieldCodec.Primitive ValueCodec.Int32 (4, "end")
         // Proto Definition Implementation
         { // ProtoDef<Annotation>
             Name = "Annotation"
@@ -2018,13 +2915,39 @@ module GeneratedCodeInfo =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
+            EncodeJson = fun (o: JsonOptions) ->
+                let writePaths = Paths.WriteJsonField o
+                let writeSourceFile = SourceFile.WriteJsonField o
+                let writeBegin = Begin.WriteJsonField o
+                let writeEnd = End.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: Annotation) =
+                    writePaths w m.Paths
+                    writeSourceFile w m.SourceFile
+                    writeBegin w m.Begin
+                    writeEnd w m.End
+                encode
             }
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
     type Annotation = {
         // Field Declarations
-        Paths: int seq // (1)
-        SourceFile: string // (2)
-        Begin: int // (3)
-        End: int // (4)
+        /// <summary>
+        /// Identifies the element in the original source .proto file. This field
+        /// is formatted the same as SourceCodeInfo.Location.path.
+        /// </summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("paths")>] Paths: int seq // (1)
+        /// <summary>Identifies the filesystem path to the original source .proto.</summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("sourceFile")>] SourceFile: string // (2)
+        /// <summary>
+        /// Identifies the starting offset in bytes in the generated code
+        /// that relates to the identified object.
+        /// </summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("begin")>] Begin: int // (3)
+        /// <summary>
+        /// Identifies the ending offset in bytes in the generated code that
+        /// relates to the identified offset. The end offset should be one past
+        /// the last relevant byte (so the length of the text = end - begin).
+        /// </summary>
+        [<System.Text.Json.Serialization.JsonPropertyName("end")>] End: int // (4)
         }
         with
         static member empty = _AnnotationProto.Empty
@@ -2033,7 +2956,7 @@ module GeneratedCodeInfo =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable Annotations: FsGrpc.RepeatedBuilder<Google.Protobuf.GeneratedCodeInfo.Annotation> // (1)
+            val mutable Annotations: RepeatedBuilder<Google.Protobuf.GeneratedCodeInfo.Annotation> // (1)
         end
         with
         member x.Put ((tag, reader): int * Reader) =
@@ -2046,7 +2969,7 @@ module GeneratedCodeInfo =
 
 let private _GeneratedCodeInfoProto : ProtoDef<GeneratedCodeInfo> =
     // Field Definitions
-    let Annotations = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.GeneratedCodeInfo.Annotation> 1
+    let Annotations = FieldCodec.Repeated ValueCodec.Message<Google.Protobuf.GeneratedCodeInfo.Annotation> (1, "annotations")
     // Proto Definition Implementation
     { // ProtoDef<GeneratedCodeInfo>
         Name = "GeneratedCodeInfo"
@@ -2064,10 +2987,25 @@ let private _GeneratedCodeInfoProto : ProtoDef<GeneratedCodeInfo> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeAnnotations = Annotations.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: GeneratedCodeInfo) =
+                writeAnnotations w m.Annotations
+            encode
         }
+/// <summary>
+/// Describes the relationship between generated code and its original source
+/// file. A GeneratedCodeInfo message is associated with only one generated
+/// source file, but may contain references to different source .proto files.
+/// </summary>
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
 type GeneratedCodeInfo = {
     // Field Declarations
-    Annotations: Google.Protobuf.GeneratedCodeInfo.Annotation seq // (1)
+    /// <summary>
+    /// An Annotation connects some span of text in generated code to an element
+    /// of its generating .proto file.
+    /// </summary>
+    [<System.Text.Json.Serialization.JsonPropertyName("annotations")>] Annotations: Google.Protobuf.GeneratedCodeInfo.Annotation seq // (1)
     }
     with
     static member empty = _GeneratedCodeInfoProto.Empty

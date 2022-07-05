@@ -1,5 +1,6 @@
 ﻿module ProtocGenFsgrpc.Main
 
+open FsGrpc
 open Google.Protobuf
 open System.IO
 
@@ -23,6 +24,7 @@ let doGeneration (fromFile: string option) : Google.Protobuf.Compiler.CodeGenera
             File.OpenRead(fromFile) :> System.IO.Stream
     use cis = new CodedInputStream(stream)
     let request = Compiler.CodeGeneratorRequest.Proto.Force().Decode cis
+    eprintfn $"(selected: %d{request.FilesToGenerate |> Seq.length}, total: %d{request.ProtoFiles |> Seq.length})"
     let protoFiles = request.ProtoFiles |> Seq.map ProtoGenFsgrpc.Model.FileDef.From
     let typeMap = ProtoCodeGen.createTypeMap protoFiles
     let isFileToGen file = Seq.exists (fun g -> g = file) request.FilesToGenerate
@@ -119,7 +121,7 @@ let main =
         | _ -> doDump dump
     let response =
         { response with SupportedFeatures = 1UL }
-    let encoded = FsGrpc.encode response
+    let encoded = Protobuf.encode response
     use stdout = System.Console.OpenStandardOutput()
     stdout.Write(encoded)
 

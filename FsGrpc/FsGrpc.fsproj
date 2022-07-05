@@ -17,7 +17,9 @@
     <None Include="../LICENSE" Pack="true" PackagePath="" />
     <None Include="../README.md" Pack="true" PackagePath="" />
     <Compile Include="ProtoDump.fs" />
-    <Compile Include="LibFsGrpc.fs" />
+    <Compile Include="Bytes.fs" />
+    <Compile Include="Protobuf.fs" />
+    <Compile Include="Json.fs" />
   </ItemGroup>
 
   <ItemGroup>

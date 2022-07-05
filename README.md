@@ -40,12 +40,12 @@ let message =
 
 Serializing a message to bytes looks like this:
 ```fsharp
-let bytes = message |> FsGrpc.encode
+let bytes = message |> FsGrpc.Protobuf.encode
 ```
 
 And deserializing looks like this:
 ```fsharp
-let message: MyMessage = bytes |> FsGrpc.decode
+let message: MyMessage = bytes |> FsGrpc.Protobuf.decode
 ```
 
 You can also serialize/deserialize from a CodedOutputStream/CodedInputStream using:
@@ -70,7 +70,7 @@ The major features intended are:
 - [x] Support for well-known types Duration and Timestamp (represented using NodaTime types)
 - [x] Automatic dependency-sorted inclusion of generated .fs files
 - [x] Buf.build integration
-- [ ] Comment pass-through
+- [x] Comment pass-through
 - [ ] Protocol Buffer reflection
 - [ ] Idiomatic functional implementation for gRPC endpoints
 

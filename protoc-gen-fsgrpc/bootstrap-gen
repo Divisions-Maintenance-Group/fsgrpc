@@ -2,6 +2,15 @@
 # This will refresh the generated files under bootstrap
 # It uses those files under bootstrap to replace themselves
 
+# So if the files under bootstrap are no longer compatible with the current version of the FsGrpc lib
+# Then it won't work and you'll need to force an older version
+# you can do that by checking out the version of FsGrpc that the existing bootstrap was built with to bootstrap-libfsgrpc
+# create it with:
+#   mkdir -p bootstrap-fsgrpc && (cd bootstrap-fsgrpc; git init; git remote add origin ../..)
+# then choose a hash with:
+#   (cd bootstrap-fsgrpc; git fetch origin && git sparse-checkout set FsGrpc && git checkout ${GITREF})
+# then once generated, remove bootstrap-fsgrpc
+
 set -e
 DIR=$(dirname $0)
 

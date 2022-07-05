@@ -2,4 +2,5 @@ version: v1
 plugins:
   - name: fsgrpc
     path: ../../protoc-gen-fsgrpc/bin/Debug/net6.0/protoc-gen-fsgrpc
-    out: gen
+    strategy: all # This is necessary in order to generate Protobuf.targets correctly
+    out: reference

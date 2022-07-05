@@ -1,6 +1,6 @@
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module rec Test.Name.Space
-open FsGrpc
+open FsGrpc.Protobuf
 #nowarn "40"
 
 
@@ -14,7 +14,7 @@ module TestMessage =
             val mutable TestDouble: double // (2)
             val mutable TestFixed32: uint // (3)
             val mutable TestString: string // (4)
-            val mutable TestBytes: BytesBuilder // (5)
+            val mutable TestBytes: FsGrpc.Bytes // (5)
             val mutable TestFloat: float32 // (6)
             val mutable TestInt64: int64 // (7)
             val mutable TestUint64: uint64 // (8)
@@ -33,7 +33,7 @@ module TestMessage =
             | 2 -> x.TestDouble <- ValueCodec.Double.ReadValue reader
             | 3 -> x.TestFixed32 <- ValueCodec.Fixed32.ReadValue reader
             | 4 -> x.TestString <- ValueCodec.String.ReadValue reader
-            | 5 -> x.TestBytes.Set (ValueCodec.Bytes.ReadValue reader)
+            | 5 -> x.TestBytes <- ValueCodec.Bytes.ReadValue reader
             | 6 -> x.TestFloat <- ValueCodec.Float.ReadValue reader
             | 7 -> x.TestInt64 <- ValueCodec.Int64.ReadValue reader
             | 8 -> x.TestUint64 <- ValueCodec.UInt64.ReadValue reader
@@ -50,7 +50,7 @@ module TestMessage =
             TestDouble = x.TestDouble
             TestFixed32 = x.TestFixed32
             TestString = x.TestString |> orEmptyString
-            TestBytes = x.TestBytes.Build
+            TestBytes = x.TestBytes
             TestFloat = x.TestFloat
             TestInt64 = x.TestInt64
             TestUint64 = x.TestUint64
@@ -65,21 +65,21 @@ module TestMessage =
 
 let private _TestMessageProto : ProtoDef<TestMessage> =
     // Field Definitions
-    let TestInt = FieldCodec.Primitive ValueCodec.Int32 1
-    let TestDouble = FieldCodec.Primitive ValueCodec.Double 2
-    let TestFixed32 = FieldCodec.Primitive ValueCodec.Fixed32 3
-    let TestString = FieldCodec.Primitive ValueCodec.String 4
-    let TestBytes = FieldCodec.Primitive ValueCodec.Bytes 5
-    let TestFloat = FieldCodec.Primitive ValueCodec.Float 6
-    let TestInt64 = FieldCodec.Primitive ValueCodec.Int64 7
-    let TestUint64 = FieldCodec.Primitive ValueCodec.UInt64 8
-    let TestFixed64 = FieldCodec.Primitive ValueCodec.Fixed64 9
-    let TestBool = FieldCodec.Primitive ValueCodec.Bool 10
-    let TestUint32 = FieldCodec.Primitive ValueCodec.UInt32 11
-    let TestSfixed32 = FieldCodec.Primitive ValueCodec.SFixed32 12
-    let TestSfixed64 = FieldCodec.Primitive ValueCodec.SFixed64 13
-    let TestSint32 = FieldCodec.Primitive ValueCodec.SInt32 14
-    let TestSint64 = FieldCodec.Primitive ValueCodec.SInt64 15
+    let TestInt = FieldCodec.Primitive ValueCodec.Int32 (1, "testInt")
+    let TestDouble = FieldCodec.Primitive ValueCodec.Double (2, "testDouble")
+    let TestFixed32 = FieldCodec.Primitive ValueCodec.Fixed32 (3, "testFixed32")
+    let TestString = FieldCodec.Primitive ValueCodec.String (4, "testString")
+    let TestBytes = FieldCodec.Primitive ValueCodec.Bytes (5, "testBytes")
+    let TestFloat = FieldCodec.Primitive ValueCodec.Float (6, "testFloat")
+    let TestInt64 = FieldCodec.Primitive ValueCodec.Int64 (7, "testInt64")
+    let TestUint64 = FieldCodec.Primitive ValueCodec.UInt64 (8, "testUint64")
+    let TestFixed64 = FieldCodec.Primitive ValueCodec.Fixed64 (9, "testFixed64")
+    let TestBool = FieldCodec.Primitive ValueCodec.Bool (10, "testBool")
+    let TestUint32 = FieldCodec.Primitive ValueCodec.UInt32 (11, "testUint32")
+    let TestSfixed32 = FieldCodec.Primitive ValueCodec.SFixed32 (12, "testSfixed32")
+    let TestSfixed64 = FieldCodec.Primitive ValueCodec.SFixed64 (13, "testSfixed64")
+    let TestSint32 = FieldCodec.Primitive ValueCodec.SInt32 (14, "testSint32")
+    let TestSint64 = FieldCodec.Primitive ValueCodec.SInt64 (15, "testSint64")
     // Proto Definition Implementation
     { // ProtoDef<TestMessage>
         Name = "TestMessage"
@@ -139,24 +139,59 @@ let private _TestMessageProto : ProtoDef<TestMessage> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeTestInt = TestInt.WriteJsonField o
+            let writeTestDouble = TestDouble.WriteJsonField o
+            let writeTestFixed32 = TestFixed32.WriteJsonField o
+            let writeTestString = TestString.WriteJsonField o
+            let writeTestBytes = TestBytes.WriteJsonField o
+            let writeTestFloat = TestFloat.WriteJsonField o
+            let writeTestInt64 = TestInt64.WriteJsonField o
+            let writeTestUint64 = TestUint64.WriteJsonField o
+            let writeTestFixed64 = TestFixed64.WriteJsonField o
+            let writeTestBool = TestBool.WriteJsonField o
+            let writeTestUint32 = TestUint32.WriteJsonField o
+            let writeTestSfixed32 = TestSfixed32.WriteJsonField o
+            let writeTestSfixed64 = TestSfixed64.WriteJsonField o
+            let writeTestSint32 = TestSint32.WriteJsonField o
+            let writeTestSint64 = TestSint64.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: TestMessage) =
+                writeTestInt w m.TestInt
+                writeTestDouble w m.TestDouble
+                writeTestFixed32 w m.TestFixed32
+                writeTestString w m.TestString
+                writeTestBytes w m.TestBytes
+                writeTestFloat w m.TestFloat
+                writeTestInt64 w m.TestInt64
+                writeTestUint64 w m.TestUint64
+                writeTestFixed64 w m.TestFixed64
+                writeTestBool w m.TestBool
+                writeTestUint32 w m.TestUint32
+                writeTestSfixed32 w m.TestSfixed32
+                writeTestSfixed64 w m.TestSfixed64
+                writeTestSint32 w m.TestSint32
+                writeTestSint64 w m.TestSint64
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+[<FsGrpc.Protobuf.Message>]
 type TestMessage = {
     // Field Declarations
-    TestInt: int // (1)
-    TestDouble: double // (2)
-    TestFixed32: uint // (3)
-    TestString: string // (4)
-    TestBytes: Google.Protobuf.ByteString // (5)
-    TestFloat: float32 // (6)
-    TestInt64: int64 // (7)
-    TestUint64: uint64 // (8)
-    TestFixed64: uint64 // (9)
-    TestBool: bool // (10)
-    TestUint32: uint32 // (11)
-    TestSfixed32: int // (12)
-    TestSfixed64: int64 // (13)
-    TestSint32: int // (14)
-    TestSint64: int64 // (15)
+    [<System.Text.Json.Serialization.JsonPropertyName("testInt")>] TestInt: int // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("testDouble")>] TestDouble: double // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("testFixed32")>] TestFixed32: uint // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("testString")>] TestString: string // (4)
+    [<System.Text.Json.Serialization.JsonPropertyName("testBytes")>] TestBytes: FsGrpc.Bytes // (5)
+    [<System.Text.Json.Serialization.JsonPropertyName("testFloat")>] TestFloat: float32 // (6)
+    [<System.Text.Json.Serialization.JsonPropertyName("testInt64")>] TestInt64: int64 // (7)
+    [<System.Text.Json.Serialization.JsonPropertyName("testUint64")>] TestUint64: uint64 // (8)
+    [<System.Text.Json.Serialization.JsonPropertyName("testFixed64")>] TestFixed64: uint64 // (9)
+    [<System.Text.Json.Serialization.JsonPropertyName("testBool")>] TestBool: bool // (10)
+    [<System.Text.Json.Serialization.JsonPropertyName("testUint32")>] TestUint32: uint32 // (11)
+    [<System.Text.Json.Serialization.JsonPropertyName("testSfixed32")>] TestSfixed32: int // (12)
+    [<System.Text.Json.Serialization.JsonPropertyName("testSfixed64")>] TestSfixed64: int64 // (13)
+    [<System.Text.Json.Serialization.JsonPropertyName("testSint32")>] TestSint32: int // (14)
+    [<System.Text.Json.Serialization.JsonPropertyName("testSint64")>] TestSint64: int64 // (15)
     }
     with
     static member empty = _TestMessageProto.Empty
@@ -184,7 +219,7 @@ module Nest =
 
     let private _InnerProto : ProtoDef<Inner> =
         // Field Definitions
-        let InnerName = FieldCodec.Primitive ValueCodec.String 1
+        let InnerName = FieldCodec.Primitive ValueCodec.String (1, "innerName")
         // Proto Definition Implementation
         { // ProtoDef<Inner>
             Name = "Inner"
@@ -202,10 +237,17 @@ module Nest =
                 while read r &tag do
                     builder.Put (tag, r)
                 builder.Build
-            }
+            EncodeJson = fun (o: JsonOptions) ->
+                let writeInnerName = InnerName.WriteJsonField o
+                let encode (w: System.Text.Json.Utf8JsonWriter) (m: Inner) =
+                    writeInnerName w m.InnerName
+                encode
+        }
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+    [<FsGrpc.Protobuf.Message>]
     type Inner = {
         // Field Declarations
-        InnerName: string // (1)
+        [<System.Text.Json.Serialization.JsonPropertyName("innerName")>] InnerName: string // (1)
         }
         with
         static member empty = _InnerProto.Empty
@@ -215,7 +257,7 @@ module Nest =
     type Builder =
         struct
             val mutable Name: string // (1)
-            val mutable Children: FsGrpc.RepeatedBuilder<Test.Name.Space.Nest> // (2)
+            val mutable Children: RepeatedBuilder<Test.Name.Space.Nest> // (2)
             val mutable Inner: OptionBuilder<Test.Name.Space.Nest.Inner> // (3)
             val mutable Special: OptionBuilder<Test.Name.Space.Special> // (4)
         end
@@ -236,10 +278,10 @@ module Nest =
 
 let private _NestProto : ProtoDef<Nest> =
     // Field Definitions
-    let Name = FieldCodec.Primitive ValueCodec.String 1
-    let Children = FieldCodec.Repeated ValueCodec.Message<Test.Name.Space.Nest> 2
-    let Inner = FieldCodec.Optional ValueCodec.Message<Test.Name.Space.Nest.Inner> 3
-    let Special = FieldCodec.Optional ValueCodec.Message<Test.Name.Space.Special> 4
+    let Name = FieldCodec.Primitive ValueCodec.String (1, "name")
+    let Children = FieldCodec.Repeated ValueCodec.Message<Test.Name.Space.Nest> (2, "children")
+    let Inner = FieldCodec.Optional ValueCodec.Message<Test.Name.Space.Nest.Inner> (3, "inner")
+    let Special = FieldCodec.Optional ValueCodec.Message<Test.Name.Space.Special> (4, "special")
     // Proto Definition Implementation
     { // ProtoDef<Nest>
         Name = "Nest"
@@ -266,13 +308,26 @@ let private _NestProto : ProtoDef<Nest> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeName = Name.WriteJsonField o
+            let writeChildren = Children.WriteJsonField o
+            let writeInner = Inner.WriteJsonField o
+            let writeSpecial = Special.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: Nest) =
+                writeName w m.Name
+                writeChildren w m.Children
+                writeInner w m.Inner
+                writeSpecial w m.Special
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+[<FsGrpc.Protobuf.Message>]
 type Nest = {
     // Field Declarations
-    Name: string // (1)
-    Children: Test.Name.Space.Nest seq // (2)
-    Inner: Test.Name.Space.Nest.Inner option // (3)
-    Special: Test.Name.Space.Special option // (4)
+    [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name: string // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("children")>] Children: Test.Name.Space.Nest seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("inner")>] Inner: Test.Name.Space.Nest.Inner option // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("special")>] Special: Test.Name.Space.Special option // (4)
     }
     with
     static member empty = _NestProto.Empty
@@ -284,10 +339,10 @@ module Special =
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
-            val mutable IntList: FsGrpc.RepeatedBuilder<int> // (1)
-            val mutable DoubleList: FsGrpc.RepeatedBuilder<double> // (2)
-            val mutable Fixed32List: FsGrpc.RepeatedBuilder<uint> // (3)
-            val mutable StringList: FsGrpc.RepeatedBuilder<string> // (4)
+            val mutable IntList: RepeatedBuilder<int> // (1)
+            val mutable DoubleList: RepeatedBuilder<double> // (2)
+            val mutable Fixed32List: RepeatedBuilder<uint> // (3)
+            val mutable StringList: RepeatedBuilder<string> // (4)
             val mutable Dictionary: MapBuilder<string, string> // (16)
         end
         with
@@ -309,11 +364,11 @@ module Special =
 
 let private _SpecialProto : ProtoDef<Special> =
     // Field Definitions
-    let IntList = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) 1
-    let DoubleList = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Double) 2
-    let Fixed32List = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Fixed32) 3
-    let StringList = FieldCodec.Repeated ValueCodec.String 4
-    let Dictionary = FieldCodec.Map ValueCodec.String ValueCodec.String 16
+    let IntList = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Int32) (1, "intList")
+    let DoubleList = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Double) (2, "doubleList")
+    let Fixed32List = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Fixed32) (3, "fixed32List")
+    let StringList = FieldCodec.Repeated ValueCodec.String (4, "stringList")
+    let Dictionary = FieldCodec.Map ValueCodec.String ValueCodec.String (16, "dictionary")
     // Proto Definition Implementation
     { // ProtoDef<Special>
         Name = "Special"
@@ -343,14 +398,29 @@ let private _SpecialProto : ProtoDef<Special> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeIntList = IntList.WriteJsonField o
+            let writeDoubleList = DoubleList.WriteJsonField o
+            let writeFixed32List = Fixed32List.WriteJsonField o
+            let writeStringList = StringList.WriteJsonField o
+            let writeDictionary = Dictionary.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: Special) =
+                writeIntList w m.IntList
+                writeDoubleList w m.DoubleList
+                writeFixed32List w m.Fixed32List
+                writeStringList w m.StringList
+                writeDictionary w m.Dictionary
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+[<FsGrpc.Protobuf.Message>]
 type Special = {
     // Field Declarations
-    IntList: int seq // (1)
-    DoubleList: double seq // (2)
-    Fixed32List: uint seq // (3)
-    StringList: string seq // (4)
-    Dictionary: Map<string, string> // (16)
+    [<System.Text.Json.Serialization.JsonPropertyName("intList")>] IntList: int seq // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("doubleList")>] DoubleList: double seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("fixed32List")>] Fixed32List: uint seq // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("stringList")>] StringList: string seq // (4)
+    [<System.Text.Json.Serialization.JsonPropertyName("dictionary")>] Dictionary: Map<string, string> // (16)
     }
     with
     static member empty = _SpecialProto.Empty
@@ -359,23 +429,27 @@ type Special = {
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Enums =
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.OneofConverter<UnionCase>>)>]
+    [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
+    [<StructuralEquality;NoComparison>]
     [<RequireQualifiedAccess>]
     type UnionCase =
     | None
-    | Color of Test.Name.Space.Enums.Color
-    | Name of string
+    | [<System.Text.Json.Serialization.JsonPropertyName("color")>] Color of Test.Name.Space.Enums.Color
+    | [<System.Text.Json.Serialization.JsonPropertyName("name")>] Name of string
 
+    [<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.EnumConverter<Color>>)>]
     type Color =
-    | Black = 0
-    | Red = 1
-    | Green = 2
-    | Blue = 3
+    | [<FsGrpc.Protobuf.ProtobufName("COLOR_BLACK")>] Black = 0
+    | [<FsGrpc.Protobuf.ProtobufName("COLOR_RED")>] Red = 1
+    | [<FsGrpc.Protobuf.ProtobufName("COLOR_GREEN")>] Green = 2
+    | [<FsGrpc.Protobuf.ProtobufName("COLOR_BLUE")>] Blue = 3
 
     [<System.Runtime.CompilerServices.IsByRefLike>]
     type Builder =
         struct
             val mutable MainColor: Test.Name.Space.Enums.Color // (1)
-            val mutable OtherColors: FsGrpc.RepeatedBuilder<Test.Name.Space.Enums.Color> // (2)
+            val mutable OtherColors: RepeatedBuilder<Test.Name.Space.Enums.Color> // (2)
             val mutable ByName: MapBuilder<string, Test.Name.Space.Enums.Color> // (3)
             val mutable Union: OptionBuilder<Test.Name.Space.Enums.UnionCase>
             val mutable MaybeColor: OptionBuilder<Test.Name.Space.Enums.Color> // (6)
@@ -400,12 +474,13 @@ module Enums =
 
 let private _EnumsProto : ProtoDef<Enums> =
     // Field Definitions
-    let MainColor = FieldCodec.Primitive ValueCodec.Enum<Test.Name.Space.Enums.Color> 1
-    let OtherColors = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Enum<Test.Name.Space.Enums.Color>) 2
-    let ByName = FieldCodec.Map ValueCodec.String ValueCodec.Enum<Test.Name.Space.Enums.Color> 3
-    let Color = FieldCodec.Optional ValueCodec.Enum<Test.Name.Space.Enums.Color> (* oneof union *) 4
-    let Name = FieldCodec.Optional ValueCodec.String (* oneof union *) 5
-    let MaybeColor = FieldCodec.Optional ValueCodec.Enum<Test.Name.Space.Enums.Color> 6
+    let MainColor = FieldCodec.Primitive ValueCodec.Enum<Test.Name.Space.Enums.Color> (1, "mainColor")
+    let OtherColors = FieldCodec.Primitive (ValueCodec.Packed ValueCodec.Enum<Test.Name.Space.Enums.Color>) (2, "otherColors")
+    let ByName = FieldCodec.Map ValueCodec.String ValueCodec.Enum<Test.Name.Space.Enums.Color> (3, "byName")
+    let Union = FieldCodec.Oneof "union"
+    let Color = FieldCodec.OneofCase "union" ValueCodec.Enum<Test.Name.Space.Enums.Color> (4, "color")
+    let Name = FieldCodec.OneofCase "union" ValueCodec.String (5, "name")
+    let MaybeColor = FieldCodec.Optional ValueCodec.Enum<Test.Name.Space.Enums.Color> (6, "maybeColor")
     // Proto Definition Implementation
     { // ProtoDef<Enums>
         Name = "Enums"
@@ -423,8 +498,8 @@ let private _EnumsProto : ProtoDef<Enums> =
             + ByName.CalcFieldSize m.ByName
             + match m.Union with
                 | Test.Name.Space.Enums.UnionCase.None -> 0
-                | Test.Name.Space.Enums.UnionCase.Color v -> Color.CalcFieldSize (Some v)
-                | Test.Name.Space.Enums.UnionCase.Name v -> Name.CalcFieldSize (Some v)
+                | Test.Name.Space.Enums.UnionCase.Color v -> Color.CalcFieldSize v
+                | Test.Name.Space.Enums.UnionCase.Name v -> Name.CalcFieldSize v
             + MaybeColor.CalcFieldSize m.MaybeColor
         Encode = fun (w: Google.Protobuf.CodedOutputStream) (m: Enums) ->
             MainColor.WriteField w m.MainColor
@@ -432,8 +507,8 @@ let private _EnumsProto : ProtoDef<Enums> =
             ByName.WriteField w m.ByName
             (match m.Union with
             | Test.Name.Space.Enums.UnionCase.None -> ()
-            | Test.Name.Space.Enums.UnionCase.Color v -> Color.WriteField w (Some v)
-            | Test.Name.Space.Enums.UnionCase.Name v -> Name.WriteField w (Some v)
+            | Test.Name.Space.Enums.UnionCase.Color v -> Color.WriteField w v
+            | Test.Name.Space.Enums.UnionCase.Name v -> Name.WriteField w v
             )
             MaybeColor.WriteField w m.MaybeColor
         Decode = fun (r: Google.Protobuf.CodedInputStream) ->
@@ -442,14 +517,35 @@ let private _EnumsProto : ProtoDef<Enums> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeMainColor = MainColor.WriteJsonField o
+            let writeOtherColors = OtherColors.WriteJsonField o
+            let writeByName = ByName.WriteJsonField o
+            let writeUnionNone = Union.WriteJsonNoneCase o
+            let writeColor = Color.WriteJsonField o
+            let writeName = Name.WriteJsonField o
+            let writeMaybeColor = MaybeColor.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: Enums) =
+                writeMainColor w m.MainColor
+                writeOtherColors w m.OtherColors
+                writeByName w m.ByName
+                (match m.Union with
+                | Test.Name.Space.Enums.UnionCase.None -> writeUnionNone w
+                | Test.Name.Space.Enums.UnionCase.Color v -> writeColor w v
+                | Test.Name.Space.Enums.UnionCase.Name v -> writeName w v
+                )
+                writeMaybeColor w m.MaybeColor
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+[<FsGrpc.Protobuf.Message>]
 type Enums = {
     // Field Declarations
-    MainColor: Test.Name.Space.Enums.Color // (1)
-    OtherColors: Test.Name.Space.Enums.Color seq // (2)
-    ByName: Map<string, Test.Name.Space.Enums.Color> // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("mainColor")>] MainColor: Test.Name.Space.Enums.Color // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("otherColors")>] OtherColors: Test.Name.Space.Enums.Color seq // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("byName")>] ByName: Map<string, Test.Name.Space.Enums.Color> // (3)
     Union: Test.Name.Space.Enums.UnionCase
-    MaybeColor: Test.Name.Space.Enums.Color option // (6)
+    [<System.Text.Json.Serialization.JsonPropertyName("maybeColor")>] MaybeColor: Test.Name.Space.Enums.Color option // (6)
     }
     with
     static member empty = _EnumsProto.Empty
@@ -483,10 +579,10 @@ module Google =
 
 let private _GoogleProto : ProtoDef<Google> =
     // Field Definitions
-    let Int32Val = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.Int32) 1
-    let StringVal = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.String) 2
-    let Timestamp = FieldCodec.Optional ValueCodec.Timestamp 3
-    let Duration = FieldCodec.Optional ValueCodec.Duration 4
+    let Int32Val = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.Int32) (1, "int32Val")
+    let StringVal = FieldCodec.Optional (ValueCodec.Wrap ValueCodec.String) (2, "stringVal")
+    let Timestamp = FieldCodec.Optional ValueCodec.Timestamp (3, "timestamp")
+    let Duration = FieldCodec.Optional ValueCodec.Duration (4, "duration")
     // Proto Definition Implementation
     { // ProtoDef<Google>
         Name = "Google"
@@ -513,14 +609,80 @@ let private _GoogleProto : ProtoDef<Google> =
             while read r &tag do
                 builder.Put (tag, r)
             builder.Build
-        }
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeInt32Val = Int32Val.WriteJsonField o
+            let writeStringVal = StringVal.WriteJsonField o
+            let writeTimestamp = Timestamp.WriteJsonField o
+            let writeDuration = Duration.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: Google) =
+                writeInt32Val w m.Int32Val
+                writeStringVal w m.StringVal
+                writeTimestamp w m.Timestamp
+                writeDuration w m.Duration
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+[<FsGrpc.Protobuf.Message>]
 type Google = {
     // Field Declarations
-    Int32Val: int option // (1)
-    StringVal: string option // (2)
-    Timestamp: NodaTime.Instant option // (3)
-    Duration: NodaTime.Duration option // (4)
+    [<System.Text.Json.Serialization.JsonPropertyName("int32Val")>] Int32Val: int option // (1)
+    [<System.Text.Json.Serialization.JsonPropertyName("stringVal")>] StringVal: string option // (2)
+    [<System.Text.Json.Serialization.JsonPropertyName("timestamp")>] Timestamp: NodaTime.Instant option // (3)
+    [<System.Text.Json.Serialization.JsonPropertyName("duration")>] Duration: NodaTime.Duration option // (4)
     }
     with
     static member empty = _GoogleProto.Empty
     static member Proto = lazy _GoogleProto
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module IntMap =
+
+    [<System.Runtime.CompilerServices.IsByRefLike>]
+    type Builder =
+        struct
+            val mutable IntMap: MapBuilder<int, string> // (1)
+        end
+        with
+        member x.Put ((tag, reader): int * Reader) =
+            match tag with
+            | 1 -> x.IntMap.Add ((ValueCodec.MapRecord ValueCodec.Int32 ValueCodec.String).ReadValue reader)
+            | _ -> reader.SkipLastField()
+        member x.Build : Test.Name.Space.IntMap = {
+            IntMap = x.IntMap.Build
+            }
+
+let private _IntMapProto : ProtoDef<IntMap> =
+    // Field Definitions
+    let IntMap = FieldCodec.Map ValueCodec.Int32 ValueCodec.String (1, "intMap")
+    // Proto Definition Implementation
+    { // ProtoDef<IntMap>
+        Name = "IntMap"
+        Empty = {
+            IntMap = IntMap.GetDefault()
+            }
+        Size = fun (m: IntMap) ->
+            0
+            + IntMap.CalcFieldSize m.IntMap
+        Encode = fun (w: Google.Protobuf.CodedOutputStream) (m: IntMap) ->
+            IntMap.WriteField w m.IntMap
+        Decode = fun (r: Google.Protobuf.CodedInputStream) ->
+            let mutable builder = new Test.Name.Space.IntMap.Builder()
+            let mutable tag = 0
+            while read r &tag do
+                builder.Put (tag, r)
+            builder.Build
+        EncodeJson = fun (o: JsonOptions) ->
+            let writeIntMap = IntMap.WriteJsonField o
+            let encode (w: System.Text.Json.Utf8JsonWriter) (m: IntMap) =
+                writeIntMap w m.IntMap
+            encode
+    }
+[<System.Text.Json.Serialization.JsonConverter(typeof<FsGrpc.Json.MessageConverter>)>]
+[<FsGrpc.Protobuf.Message>]
+type IntMap = {
+    // Field Declarations
+    [<System.Text.Json.Serialization.JsonPropertyName("intMap")>] IntMap: Map<int, string> // (1)
+    }
+    with
+    static member empty = _IntMapProto.Empty
+    static member Proto = lazy _IntMapProto

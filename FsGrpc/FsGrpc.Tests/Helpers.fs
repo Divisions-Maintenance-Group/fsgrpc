@@ -1,5 +1,6 @@
 module Helpers
 open System.Text.RegularExpressions
+open FsGrpc
 
 let sanitizeHex hex = 
     Regex.Replace(hex, "[^a-z0-9]", "")
@@ -40,5 +41,5 @@ let readerFromHex (hex: string) : Google.Protobuf.CodedInputStream =
     let reader = new Google.Protobuf.CodedInputStream(bytes)
     reader
 
-let inline roundTrip< ^T when ^T : (static member Proto : Lazy<FsGrpc.ProtoDef< 'T>>)> (value: ^T) =
-    value |> FsGrpc.encode< ^T> |> FsGrpc.decode< ^T>
+let inline roundTrip< ^T when ^T : (static member Proto : Lazy<Protobuf.ProtoDef< 'T>>)> (value: ^T) =
+    value |> Protobuf.encode< ^T> |> Protobuf.decode< ^T>

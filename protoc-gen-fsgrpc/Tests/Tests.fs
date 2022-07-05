@@ -1,6 +1,7 @@
 module Tests
 
 open System
+open FsGrpc
 open Xunit
 
 type LaunchResult = {
@@ -118,11 +119,12 @@ let ``Generates correct files`` () =
         printfn "%s" result.Output
     Assert.Equal(0, result.ExitCode)
     
-    let reference = contentsOfFolder "reference"
-    let actual = contentsOfFolder outFolder
+    let reference = contentsOfFolder "reference" |> Seq.toList
+    let actual = contentsOfFolder outFolder |> Seq.toList
 
     // make sure the actual files match the reference files
-    Assert.Equal<string * string>(reference, actual)
+    let actualMatchesReference = reference = actual
+    Assert.True (actualMatchesReference, $"The actual does not match the reference, bcompare \"./reference\" \"{outFolder}\"")
 
     if System.IO.Directory.Exists (outFolder) then
         System.IO.Directory.Delete (outFolder, true)
@@ -134,7 +136,7 @@ let ``Basic roundtrip decoding and encoding work from generated file`` () =
     let expected : Ex.Ample.Outer =
         {
             BoolVal = true
-            BytesVal = Google.Protobuf.ByteString.CopyFromUtf8("test")
+            BytesVal = Bytes.FromUtf8("test")
             Doubles = [|1.1; 2.2|]
             DoubleVal = 3.3;
             Duration = Some (NodaTime.Duration.FromDays 1)
@@ -211,5 +213,5 @@ let ``Basic roundtrip decoding and encoding work from generated file`` () =
             UlongVal = 12345UL
             Union = Ex.Ample.Outer.UnionCase.StringOption "World"
             }
-    let actual = expected |> FsGrpc.encode |> FsGrpc.decode
+    let actual = expected |> Protobuf.encode |> Protobuf.decode
     Assert.Equal(expected, actual)
